@@ -48,7 +48,11 @@ fun LoginScreen(vm: SicenetViewModel, alEntrar: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             enabled = !vm.estaCargando
         ) {
-            if (vm.estaCargando) CircularProgressIndicator(size = 20.dp)
+            if (vm.estaCargando) CircularProgressIndicator(
+                modifier = Modifier.size(20.dp), // El tamaño se define dentro del Modifier
+                color = MaterialTheme.colorScheme.onPrimary,
+                strokeWidth = 2.dp // Opcional: para que el círculo no se vea muy grueso
+            )
             else Text("INICIAR SESIÓN")
         }
     }
