@@ -27,6 +27,7 @@ fun LoginScreen(vm: SicenetViewModel, alEntrar: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
 
+
         Spacer(modifier = Modifier.height(10.dp))
         OutlinedTextField(
             value = vm.password,
