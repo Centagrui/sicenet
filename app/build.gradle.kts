@@ -56,4 +56,18 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    dependencies {
+        // ... tus dependencias actuales ...
+
+        // Retrofit para conexión SOAP
+        implementation("com.squareup.retrofit2:retrofit:2.9.0")
+        implementation("com.squareup.retrofit2:converter-scalars:2.9.0") // Para recibir el XML como String
+
+        // Navegación entre pantallas
+        implementation("androidx.navigation:navigation-compose:2.7.7")
+
+        // ViewModel para Compose
+        implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    }
 }
