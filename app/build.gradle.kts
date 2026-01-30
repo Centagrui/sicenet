@@ -69,5 +69,16 @@ dependencies {
 
         // ViewModel para Compose
         implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+        // Retrofit: Para la conexión con el servidor SOAP de SICENET
+        implementation("com.squareup.retrofit2:retrofit:2.9.0")
+        // Scalars: Necesario para enviar y recibir el XML como String
+        implementation("com.squareup.retrofit2:converter-scalars:2.9.0")
+
+        // ViewModel: Para que tu SicenetViewModel funcione con Compose
+        implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+
+        // Navigation: Para moverte de la LoginScreen a la ProfileScreen
+        implementation("androidx.navigation:navigation-compose:2.7.7")
     }
 }
