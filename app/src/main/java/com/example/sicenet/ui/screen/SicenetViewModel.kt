@@ -12,7 +12,6 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
     var perfilXml by mutableStateOf("")
     var estaCargando by mutableStateOf(false)
     var mensajeError by mutableStateOf("")
-
     fun iniciarSesion(onSuccess: () -> Unit) {
         viewModelScope.launch {
             estaCargando = true

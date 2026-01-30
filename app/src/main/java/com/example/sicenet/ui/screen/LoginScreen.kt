@@ -28,7 +28,6 @@ fun LoginScreen(vm: SicenetViewModel, alEntrar: () -> Unit) {
         )
 
         Spacer(modifier = Modifier.height(10.dp))
-
         OutlinedTextField(
             value = vm.password,
             onValueChange = { vm.password = it },
