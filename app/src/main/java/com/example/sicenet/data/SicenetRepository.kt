@@ -1,6 +1,7 @@
 package com.example.sicenet.data
 
 import android.util.Log
+import com.example.sicenet.model.AlumnoPerfil
 
 class SicenetRepository(private val api: SicenetApiService) {
     // Usamos una variable volátil para asegurar que se lea correctamente entre hilos
@@ -85,6 +86,48 @@ class SicenetRepository(private val api: SicenetApiService) {
         } catch (e: Exception) {
             Log.e("PERFIL_EXCEPTION", "Fallo de red: ${e.message}")
             "Error de conexión"
+        }
+    }
+
+    fun procesarDatosPerfil(xml: String): AlumnoPerfil? {
+        return try {
+            // 1. Extraer el contenido entre las etiquetas del Web Service
+            val jsonRaw = xml.substringAfter("<getAlumnoAcademicoWithLineamientoResult>")
+                .substringBefore("</getAlumnoAcademicoWithLineamientoResult>")
+
+            val nombre = jsonRaw.substringAfter("\"nombre\":\"", "").substringBefore("\"")
+            val matricula = jsonRaw.substringAfter("\"matricula\":\"", "").substringBefore("\"")
+            val estatus = jsonRaw.substringAfter("\"estatus\":\"", "").substringBefore("\"")
+            val inscrito = jsonRaw.substringAfter("\"inscrito\":\"", "").substringBefore("\"")
+            val carrera = jsonRaw.substringAfter("\"carrera\":\"", "").substringBefore("\"")
+            val especialidad = jsonRaw.substringAfter("\"especialidad\":\"", "").substringBefore("\"")
+            val semestre = jsonRaw.substringAfter("\"semActual\":")
+                .substringBefore(",")
+                .substringBefore("}")
+                .replace("\"", "")
+                .trim()
+
+            val creditos = jsonRaw.substringAfter("\"cdtosActuales\":")
+                .substringBefore(",")
+                .substringBefore("}")
+                .replace("\"", "")
+                .trim()
+
+            Log.d("PARSER_CHECK", "Semestre extraído: $semestre, Créditos: $creditos")
+
+            AlumnoPerfil(
+                nombre = nombre,
+                matricula = matricula,
+                estatus = estatus,
+                inscrito = inscrito,
+                carrera = carrera,
+                semestreActual = semestre,
+                especialidad = especialidad,
+                creditosTotales = creditos
+            )
+        } catch (e: Exception) {
+            Log.e("PARSER_ERROR", "Error procesando JSON: ${e.message}")
+            null
         }
     }
 }

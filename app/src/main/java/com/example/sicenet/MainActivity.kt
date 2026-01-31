@@ -50,10 +50,8 @@ class MainActivity : ComponentActivity() {
                         }
 
 
-                        // Ruta para la pantalla de Perfil
                         composable("perfil") {
-                            // Pasamos el XML recuperado del perfil a la pantalla
-                            ProfileScreen(datosXml = viewModel.perfilXml)
+                            ProfileScreen(vm = viewModel)
                         }
                     }
                 }
