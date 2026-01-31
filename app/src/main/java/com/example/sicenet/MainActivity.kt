@@ -21,11 +21,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. Instanciamos el repositorio usando el servicio de Retrofit
         val apiService = RetrofitClient.apiService
         val repository = SicenetRepository(apiService)
 
-        // 2. Creamos el ViewModel que servirá de puente para los datos
         val viewModel = SicenetViewModel(repository)
 
         setContent {

@@ -16,12 +16,10 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
         viewModelScope.launch {
             estaCargando = true
             mensajeError = ""
-            // Intentamos la autenticación
             val exito = repository.login(matricula, password)
 
 
             if (exito) {
-                // Si el login es correcto, recuperamos el perfil
                 val resultado = repository.recuperarPerfil()
                 if (resultado != null) {
                     perfilXml = resultado

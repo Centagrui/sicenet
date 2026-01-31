@@ -20,7 +20,6 @@ fun ProfileScreen(datosXml: String) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Card(modifier = Modifier.fillMaxWidth()) {
-            // Muestra el resultado de getAlumnoAcademicoWithLineamiento
             Text(
                 text = datosXml,
                 modifier = Modifier.padding(16.dp),

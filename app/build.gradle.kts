@@ -80,5 +80,7 @@ dependencies {
 
         // Navigation: Para moverte de la LoginScreen a la ProfileScreen
         implementation("androidx.navigation:navigation-compose:2.7.7")
+
+        implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
     }
 }
