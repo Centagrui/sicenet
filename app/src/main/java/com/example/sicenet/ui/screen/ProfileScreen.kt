@@ -14,13 +14,14 @@ import com.example.sicenet.ui.SicenetViewModel
 
 @Composable
 fun ProfileScreen(vm: SicenetViewModel) {
-    // Estado para controlar el scroll si hay muchos datos
+    // permite que el usuario baje si el contenido no cabe en pantalla
     val scrollState = rememberScrollState()
+    // Obtenemos los datos del alumno desde el ViewModel
     val alumno = vm.alumnoData
 
-    // Si ya procesamos los datos en el Login, vm.alumnoData no será nulo.
-    // Aun así, lanzamos cargarPerfil por si acaso la sesión se refresca.
+    // LaunchedEffect se ejecuta una sola vez cuando la pantalla se carga (Unit)
     LaunchedEffect(Unit) {
+        // Si  el objeto alumno está vacío, mandamos llamar la petición al servidor
         if (alumno == null) {
             vm.cargarPerfil()
         }
@@ -41,36 +42,38 @@ fun ProfileScreen(vm: SicenetViewModel) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Si ya tenemos datos del alumno, dibujamos la tarjeta (Card)
         if (alumno != null) {
-            // Tarjeta de información principal
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
+                    //'DatoItem' para no repetir código de diseño
                     DatoItem(label = "Nombre", valor = alumno.nombre)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    Divider(modifier = Modifier.padding(vertical = 8.dp)) // Línea divisoria
+
                     DatoItem(label = "Matrícula", valor = alumno.matricula)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
+
                     DatoItem(label = "Estatus", valor = alumno.estatus)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
-//                    DatoItem(label = "Inscrito", valor = alumno.inscrito)
-//                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+
                     DatoItem(label = "Carrera", valor = alumno.carrera)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
+
                     DatoItem(label = "Especialidad", valor = alumno.especialidad)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+
                     DatoItem(label = "Semestre Actual", valor = alumno.semestreActual)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
+
                     DatoItem(label = "Créditos Totales", valor = alumno.creditosTotales)
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-
                 }
             }
         } else {
-            // Pantalla de carga
+            // Si el objeto 'alumno' es nulo, mostramos un indicador de carga (Loading)
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -85,18 +88,20 @@ fun ProfileScreen(vm: SicenetViewModel) {
     }
 }
 
+//  cómo se ve cada renglón de información
 @Composable
 fun DatoItem(label: String, valor: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall, // Texto pequeño para la etiqueta
             color = MaterialTheme.colorScheme.secondary
         )
         Text(
+            //si el valor está vacío, muestra "No disponible"
             text = if (valor.isEmpty()) "No disponible" else valor,
             style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold // Resaltamos el dato en negritas
         )
     }
 }

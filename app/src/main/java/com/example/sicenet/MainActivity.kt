@@ -48,8 +48,6 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("perfil")
                             }
                         }
-
-
                         composable("perfil") {
                             ProfileScreen(vm = viewModel)
                         }
