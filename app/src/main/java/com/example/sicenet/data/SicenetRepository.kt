@@ -3,15 +3,13 @@ package com.example.sicenet.data
 import android.util.Log
 import com.example.sicenet.model.AlumnoPerfil
 
-//  Centraliza la lógica de datos para el resto de la app.
 class SicenetRepository(private val api: SicenetApiService) {
 
     // Variable para almacenar el ID de sesión (Cookie) y mantener al usuario conectado
     private var sessionCookie: String? = null
 
-    //  Recibe credenciales y devuelve éxito/fallo
     suspend fun login(matricula: String, contrasenia: String): Boolean {
-        // Estructura XML para el protocolo SOAP que pide el servidor
+        // Estructura XML
         val soapLogin = """
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
               <soap:Body>
@@ -31,18 +29,16 @@ class SicenetRepository(private val api: SicenetApiService) {
             if (response.isSuccessful) {
                 val body = response.body() ?: ""
                 Log.d("SICENET_LOGIN", "Body: $body")
-
-                //  Extraemos el 'Set-Cookie' de la cabecera de respuesta
-                // para que las siguientes peticiones (como ver perfil) funcionen
+                 // Obtenemos la cookie del header para las peticiones del perfil
                 val rawCookie = response.headers()["Set-Cookie"]
                 if (rawCookie != null) {
-                    // Limpiamos el texto para quedarnos solo con el ID
+                    //primera
                     sessionCookie = rawCookie.split(";")[0]
                     Log.d("COOKIE_DEBUG", "Sesión capturada: $sessionCookie")
                 }
 
                 // servidor devuelve un String que contiene un JSON
-                // Si d viene '"acceso":true', el login es válido
+                // Si d viene true, el login es válido
                 if (body.contains("\"acceso\":true")) {
                     Log.d("SICENET", "¡Login exitoso detectado!")
                     return true
@@ -60,15 +56,12 @@ class SicenetRepository(private val api: SicenetApiService) {
         }
     }
 
-    // Función para obtener  (XML) del perfil del alumno
     suspend fun recuperarPerfil(): String? {
-        // si no hay cookie, no podemos pedir el perfil
-        val cookieActual = sessionCookie ?: run {
+      val cookieActual = sessionCookie ?: run {
             Log.e("SICENET", "Intento de recuperar perfil sin cookie")
             return "Error: Sin Sesión"
         }
 
-        // SOAPpara la consulta del perfil
         val soapPerfil = """
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
               <soap:Body>
@@ -103,8 +96,7 @@ class SicenetRepository(private val api: SicenetApiService) {
             val jsonRaw = xml.substringAfter("<getAlumnoAcademicoWithLineamientoResult>")
                 .substringBefore("</getAlumnoAcademicoWithLineamientoResult>")
 
-            // Extraemos cada campo buscando las claves en el String
-            // Se usa substringAfter y substringBefore para recortar el texto entre comillas
+            // para recortar el texto entre comillas
             val nombre = jsonRaw.substringAfter("\"nombre\":\"", "").substringBefore("\"")
             val matricula = jsonRaw.substringAfter("\"matricula\":\"", "").substringBefore("\"")
             val estatus = jsonRaw.substringAfter("\"estatus\":\"", "").substringBefore("\"")

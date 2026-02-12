@@ -14,7 +14,7 @@ import com.example.sicenet.ui.SicenetViewModel
 
 @Composable
 fun ProfileScreen(vm: SicenetViewModel) {
-    // permite que el usuario baje si el contenido no cabe en pantalla
+
     val scrollState = rememberScrollState()
     // Obtenemos los datos del alumno desde el ViewModel
     val alumno = vm.alumnoData
@@ -88,20 +88,18 @@ fun ProfileScreen(vm: SicenetViewModel) {
     }
 }
 
-//  cómo se ve cada renglón de información
 @Composable
 fun DatoItem(label: String, valor: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall, // Texto pequeño para la etiqueta
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.secondary
         )
         Text(
-            //si el valor está vacío, muestra "No disponible"
             text = if (valor.isEmpty()) "No disponible" else valor,
             style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold // Resaltamos el dato en negritas
+            fontWeight = FontWeight.Bold
         )
     }
 }

@@ -23,28 +23,26 @@ class MainActivity : ComponentActivity() {
 
         val apiService = RetrofitClient.apiService
         val repository = SicenetRepository(apiService)
-
         val viewModel = SicenetViewModel(repository)
 
         setContent {
             SicenetTheme {
-                // Contenedor principal de la interfaz
+
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // 3. Configuramos el NavController para la navegación
+
                     val navController = rememberNavController()
 
-                    // 4. Definimos el Grafo de Navegación
                     NavHost(
                         navController = navController,
-                        startDestination = "login" // La app inicia en el Login
+                        startDestination = "login"
                     ) {
-                        // Ruta para la pantalla de Login
+
                         composable("login") {
                             LoginScreen(vm = viewModel) {
-                                // Acción al autenticarse con éxito: Navegar al Perfil
+//
                                 navController.navigate("perfil")
                             }
                         }

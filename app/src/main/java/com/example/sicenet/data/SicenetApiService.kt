@@ -6,7 +6,6 @@ import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
 
-// Definimos los puntos de entrada del API del Sicenet
 interface SicenetApiService {
 
     // @Headers  encabezados necesarios para que el servidor entienda la petición.
@@ -15,12 +14,11 @@ interface SicenetApiService {
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/accesoLogin\""
     )
-    // @POST nos indica que enviaremos datos al servidor.
-    // 'suspend' nos indica que la función se ejecutará en una corrutina para no trabar la app.
+
     @POST("wsalumnos.asmx")
     suspend fun accesoLogin(@Body body: String): Response<String>
 
-    // sobrecarga del método Login para cuando ya tenemos una sesión iniciada.
+
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/accesoLogin\""
