@@ -1,6 +1,6 @@
 package com.example.sicenet.model
 
-//  para transportar datos.
+//  para transportar datos del alumno.
 data class AlumnoPerfil(
 
 

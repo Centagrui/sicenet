@@ -3,13 +3,12 @@ package com.example.sicenet.data
 import android.util.Log
 import com.example.sicenet.model.AlumnoPerfil
 
-class SicenetRepository(private val api: SicenetApiService) {
+// Implementamos la interfaz para cumplir con la arquitecturMVVM
+class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository {
 
-    // Variable para almacenar el ID de sesión (Cookie) y mantener al usuario conectado
     private var sessionCookie: String? = null
 
-    suspend fun login(matricula: String, contrasenia: String): Boolean {
-        // Estructura XML
+    override suspend fun login(matricula: String, contrasenia: String): Boolean {
         val soapLogin = """
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
               <soap:Body>
@@ -23,44 +22,29 @@ class SicenetRepository(private val api: SicenetApiService) {
         """.trimIndent()
 
         return try {
-            // Se envía una cookie  para que el servidor genere una sesión real
             val response = api.accesoLogin("ASP.NET_SessionId=detect", soapLogin)
-
             if (response.isSuccessful) {
                 val body = response.body() ?: ""
-                Log.d("SICENET_LOGIN", "Body: $body")
-                 // Obtenemos la cookie del header para las peticiones del perfil
                 val rawCookie = response.headers()["Set-Cookie"]
                 if (rawCookie != null) {
-                    //primera
                     sessionCookie = rawCookie.split(";")[0]
-                    Log.d("COOKIE_DEBUG", "Sesión capturada: $sessionCookie")
                 }
 
-                // servidor devuelve un String que contiene un JSON
-                // Si d viene true, el login es válido
                 if (body.contains("\"acceso\":true")) {
-                    Log.d("SICENET", "¡Login exitoso detectado!")
-                    return true
+                    true
                 } else {
-                    Log.e("SICENET", "Credenciales incorrectas o acceso denegado")
-                    return false
+                    Log.e("SICENET", "Credenciales incorrectas")
+                    false
                 }
-            } else {
-                Log.e("SICENET", "Error en la petición: ${response.code()}")
-                return false
-            }
+            } else false
         } catch (e: Exception) {
-            Log.e("SICENET", "Error en login: ${e.message}")
+            Log.e("SICENET", "Error: ${e.message}")
             false
         }
     }
 
-    suspend fun recuperarPerfil(): String? {
-      val cookieActual = sessionCookie ?: run {
-            Log.e("SICENET", "Intento de recuperar perfil sin cookie")
-            return "Error: Sin Sesión"
-        }
+    override suspend fun recuperarPerfil(): String? {
+        val cookieActual = sessionCookie ?: return "Error: Sin Sesión"
 
         val soapPerfil = """
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -71,67 +55,45 @@ class SicenetRepository(private val api: SicenetApiService) {
         """.trimIndent()
 
         return try {
-            // Mandamos la petición usando la cookie que guardamos en el login
             val response = api.getPerfil(cookieActual, soapPerfil)
-
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                Log.d("PERFIL_SUCCESS", "XML del perfil obtenido correctamente")
-                responseBody // Devolvemos el XML completo como String
-            } else {
-                val errorMsg = "Error ${response.code()}: ${response.errorBody()?.string()}"
-                Log.e("PERFIL_ERROR", errorMsg)
-                "Error en el servidor"
-            }
+            if (response.isSuccessful) response.body() else null
         } catch (e: Exception) {
-            Log.e("PERFIL_EXCEPTION", "Fallo de red: ${e.message}")
-            "Error de conexión"
+            null
         }
     }
 
-    // limpiamos el XML  y extrae los datos reales
-    fun procesarDatosPerfil(xml: String): AlumnoPerfil? {
+    override fun procesarDatosPerfil(xml: String): AlumnoPerfil? {
         return try {
-            // Quitamos las etiquetas XML para quedarnos con el texto interior
             val jsonRaw = xml.substringAfter("<getAlumnoAcademicoWithLineamientoResult>")
                 .substringBefore("</getAlumnoAcademicoWithLineamientoResult>")
 
-            // para recortar el texto entre comillas
+            // Extracción robusta de datos
             val nombre = jsonRaw.substringAfter("\"nombre\":\"", "").substringBefore("\"")
             val matricula = jsonRaw.substringAfter("\"matricula\":\"", "").substringBefore("\"")
-            val estatus = jsonRaw.substringAfter("\"estatus\":\"", "").substringBefore("\"")
-            val inscrito = jsonRaw.substringAfter("\"inscrito\":\"", "").substringBefore("\"")
             val carrera = jsonRaw.substringAfter("\"carrera\":\"", "").substringBefore("\"")
             val especialidad = jsonRaw.substringAfter("\"especialidad\":\"", "").substringBefore("\"")
 
-            // Limpieza  para números
+            // Ajuste para semestre y créditos (buscando las claves correctas)
             val semestre = jsonRaw.substringAfter("\"semActual\":")
                 .substringBefore(",")
                 .substringBefore("}")
-                .replace("\"", "")
-                .trim()
+                .replace("\"", "").trim()
 
             val creditos = jsonRaw.substringAfter("\"cdtosActuales\":")
                 .substringBefore(",")
                 .substringBefore("}")
-                .replace("\"", "")
-                .trim()
+                .replace("\"", "").trim()
 
-            Log.d("PARSER_CHECK", "Semestre extraído: $semestre, Créditos: $creditos")
-
-            // Devolvemos el objeto AlumnoPerfil ya con los datos limpios y listos para la UI
             AlumnoPerfil(
                 nombre = nombre,
                 matricula = matricula,
-                estatus = estatus,
-                inscrito = inscrito,
                 carrera = carrera,
-                semestreActual = semestre,
                 especialidad = especialidad,
+                semestreActual = semestre,
                 creditosTotales = creditos
             )
         } catch (e: Exception) {
-            Log.e("PARSER_ERROR", "Error procesando JSON: ${e.message}")
+            Log.e("PARSER_ERROR", "Error: ${e.message}")
             null
         }
     }

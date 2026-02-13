@@ -28,7 +28,7 @@ fun LoginScreen(vm: SicenetViewModel, alEntrar: () -> Unit) {
             label = { Text("Matrícula") },
             modifier = Modifier.fillMaxWidth()
         )
-
+//
         Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedTextField(

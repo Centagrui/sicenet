@@ -3,12 +3,12 @@ package com.example.sicenet.ui
 import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.sicenet.data.ISicenetRepository
 import com.example.sicenet.data.SicenetRepository
 import com.example.sicenet.model.AlumnoPerfil
 import kotlinx.coroutines.launch
 
-class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() {
-
+class SicenetViewModel(private val repository: ISicenetRepository) : ViewModel() {
     var matricula by mutableStateOf("")
     var password by mutableStateOf("")
 
@@ -16,7 +16,7 @@ class SicenetViewModel(private val repository: SicenetRepository) : ViewModel() 
     var estaCargando by mutableStateOf(false)
     var mensajeError by mutableStateOf("")
 
-    //  guardamos el resultado del servidor
+    //  guardamos el resultado del servidorr
     var perfilXml by mutableStateOf<String?>(null)
     var alumnoData by mutableStateOf<AlumnoPerfil?>(null)
 

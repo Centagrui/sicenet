@@ -26,7 +26,7 @@ fun ProfileScreen(vm: SicenetViewModel) {
             vm.cargarPerfil()
         }
     }
-
+//
     Column(
         modifier = Modifier
             .fillMaxSize()

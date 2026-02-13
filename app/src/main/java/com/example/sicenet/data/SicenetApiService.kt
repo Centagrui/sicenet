@@ -31,7 +31,7 @@ interface SicenetApiService {
         @Body body: String
     ): Response<String>
 
-    // Endpoint para obtener los datos académicos y de perfil del alumno.
+    // Endpont para obtener los datos académicos y de perfil del alumno.
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getAlumnoAcademicoWithLineamiento\""

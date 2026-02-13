@@ -9,7 +9,6 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 // Esto garantiza que solo exista una instancia de la conexión en toda la app.
 object RetrofitClient {
     private const val BASE_URL = "https://sicenet.surguanajuato.tecnm.mx/ws/"
-
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
