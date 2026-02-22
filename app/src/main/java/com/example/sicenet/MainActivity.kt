@@ -1,64 +1,104 @@
-package com.example.sicenet
+package com.example.sicenet.ui
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.sicenet.data.RetrofitClient
-import com.example.sicenet.data.SicenetRepository
-import com.example.sicenet.data.ISicenetRepository // Importamos la interfaz
-import com.example.sicenet.ui.SicenetViewModel
-import com.example.sicenet.ui.screen.LoginScreen
-import com.example.sicenet.ui.screen.ProfileScreen
-import com.example.sicenet.ui.theme.SicenetTheme
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.*
+import com.example.sicenet.navigation.Destinos
+import com.example.sicenet.ui.screen.*
+import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SicenetApp(vm: SicenetViewModel) {
+    val navController = rememberNavController()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-        // 1. Configuramos las dependencias UNA SOLA VEZ aquí arriba
-        val apiService = RetrofitClient.apiService
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text("Menú SICENET", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
+                HorizontalDivider()
 
-        // Declaramos el repositorio usando la Interfaz como tipo
-        val repository: ISicenetRepository = SicenetRepository(apiService)
+                // Opción Perfil
+                NavigationDrawerItem(
+                    label = { Text(Destinos.Perfil.titulo) },
+                    selected = false,
+                    onClick = {
+                        navController.navigate(Destinos.Perfil.ruta)
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.Default.Person, contentDescription = null) }
+                )
 
-        // El ViewModel recibe la interfaz, cumpliendo con la arquitectura MVVM
-        val viewModel = SicenetViewModel(repository)
+                // Opción Carga Académica
+                NavigationDrawerItem(
+                    label = { Text(Destinos.Carga.titulo) },
+                    selected = false,
+                    onClick = {
+                        navController.navigate(Destinos.Carga.ruta)
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.Default.DateRange, contentDescription = null) }
+                )
 
-        setContent {
-            SicenetTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    val navController = rememberNavController()
-
-                    NavHost(
-                        navController = navController,
-                        startDestination = "login"
-                    ) {
-                        // Ruta para la pantalla de Login
-                        composable("login") {
-                            LoginScreen(vm = viewModel) {
-                                // Al tener éxito, navegamos a perfil
-                                navController.navigate("perfil")
-                            }
+                // Opción Kardex
+                NavigationDrawerItem(
+                    label = { Text(Destinos.Kardex.titulo) },
+                    selected = false,
+                    onClick = {
+                        navController.navigate(Destinos.Kardex.ruta)
+                        scope.launch { drawerState.close() }
+                    },
+                    icon = { Icon(Icons.Default.Star, contentDescription = null) }
+                )
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = { Text("SICENET") },
+                    navigationIcon = {
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Default.Menu, contentDescription = "Menu")
                         }
-
-                        // Ruta para la pantalla de Perfiil
-                        composable("perfil") {
-                            // Solo llamamos a la pantalla, el viewModel ya tiene los datos
-                            ProfileScreen(vm = viewModel)
+                    }
+                )
+            }
+        ) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = "login",
+                modifier = Modifier.padding(paddingValues)
+            ) {
+                composable("login") {
+                    LoginScreen(vm) {
+                        navController.navigate(Destinos.Perfil.ruta) {
+                            popUpTo("login") { inclusive = true }
                         }
                     }
                 }
+                composable(Destinos.Perfil.ruta) { ProfileScreen(vm) }
+                composable(Destinos.Carga.ruta) { CargaScreen(vm) }
+                composable(Destinos.Kardex.ruta) { KardexScreen(vm) }
             }
         }
     }
+}
+
+@Composable
+fun KardexScreen(x0: SicenetViewModel) {
+    TODO("Not yet implemented")
+}
+
+@Composable
+fun CargaScreen(x0: SicenetViewModel) {
+    TODO("Not yet implemented")
 }

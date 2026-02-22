@@ -8,16 +8,13 @@ import retrofit2.http.POST
 
 interface SicenetApiService {
 
-    // @Headers  encabezados necesarios para que el servidor entienda la petición.
-    // Definimos que es un archivo XML y se define la acción SOAP.
+    // Login (Ya lo tenías)
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/accesoLogin\""
     )
-
     @POST("wsalumnos.asmx")
     suspend fun accesoLogin(@Body body: String): Response<String>
-
 
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
@@ -25,20 +22,63 @@ interface SicenetApiService {
     )
     @POST("wsalumnos.asmx")
     suspend fun accesoLogin(
-        // enviamos el identificador de sesión que el servidor nos dio.
         @Header("Cookie") cookie: String,
-        //  cuerpo de la petición, SOAP en formato String.
         @Body body: String
     ): Response<String>
 
-    // Endpont para obtener los datos académicos y de perfil del alumno.
+    // Perfil (Ya lo tenías)
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getAlumnoAcademicoWithLineamiento\""
     )
     @POST("wsalumnos.asmx")
     suspend fun getPerfil(
-        // la Cookie para demostrar que el alumno ya está logueado.
+        @Header("Cookie") cookie: String,
+        @Body body: String
+    ): Response<String>
+
+    // --- NUEVOS MÉTODOS PARA LA ENTREGA 2 ---
+
+    // 1. Carga Académica
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getCargaAcademicaByAlumno\""
+    )
+    @POST("wsalumnos.asmx")
+    suspend fun getCargaAcademica(
+        @Header("Cookie") cookie: String,
+        @Body body: String
+    ): Response<String>
+
+    // 2. Kardex
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getAllKardexConPromedioByAlumno\""
+    )
+    @POST("wsalumnos.asmx")
+    suspend fun getKardex(
+        @Header("Cookie") cookie: String,
+        @Body body: String
+    ): Response<String>
+
+    // 3. Calificaciones por Unidad
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getCalifUnidadesByAlumno\""
+    )
+    @POST("wsalumnos.asmx")
+    suspend fun getCalificacionesUnidades(
+        @Header("Cookie") cookie: String,
+        @Body body: String
+    ): Response<String>
+
+    // 4. Calificación Final
+    @Headers(
+        "Content-Type: text/xml; charset=utf-8",
+        "SOAPAction: \"http://tempuri.org/getAllCalifFinalByAlumnos\""
+    )
+    @POST("wsalumnos.asmx")
+    suspend fun getCalificacionesFinales(
         @Header("Cookie") cookie: String,
         @Body body: String
     ): Response<String>

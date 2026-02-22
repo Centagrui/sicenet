@@ -1,28 +1,46 @@
 package com.example.sicenet.ui
 
+import android.app.Application
+import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.*
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.sicenet.data.ISicenetRepository
-import com.example.sicenet.data.SicenetRepository
 import com.example.sicenet.model.AlumnoPerfil
+import com.example.sicenet.model.Materia
+import com.example.sicenet.model.Kardex
+import com.example.sicenet.data.local.SicenetDatabase
+import com.example.sicenet.data.workers.*
+import androidx.work.*
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-class SicenetViewModel(private val repository: ISicenetRepository) : ViewModel() {
+// Usamos AndroidViewModel para poder acceder a la base de datos con el context de la app
+class SicenetViewModel(
+    private val repository: ISicenetRepository,
+    application: Application
+) : AndroidViewModel(application) {
+
+    // --- ESTADO DE LOGIN ---
     var matricula by mutableStateOf("")
     var password by mutableStateOf("")
-
-    // Variables de estado para controlar qué mostrar en la pantalla
     var estaCargando by mutableStateOf(false)
     var mensajeError by mutableStateOf("")
 
-    //  guardamos el resultado del servidorr
+    // --- ACCESO A BASE DE DATOS LOCAL (ROOM) ---
+    private val dao = SicenetDatabase.getDatabase(application).sicenetDao()
+
+    // Estas variables son "Flujos" que se actualizan solos cuando la DB cambia
+    val perfilLocal: Flow<AlumnoPerfil?> = dao.obtenerPerfil()
+    val materiasCarga: Flow<List<Materia>> = dao.obtenerCarga()
+    val kardexLocal: Flow<List<Kardex>> = dao.obtenerKardex()
+
+    // Mantenemos estas por compatibilidad con tu código anterior si es necesario
     var perfilXml by mutableStateOf<String?>(null)
     var alumnoData by mutableStateOf<AlumnoPerfil?>(null)
 
-
     fun cargarPerfil() {
-
         viewModelScope.launch {
             val xml = repository.recuperarPerfil()
             perfilXml = xml
@@ -32,30 +50,50 @@ class SicenetViewModel(private val repository: ISicenetRepository) : ViewModel()
         }
     }
 
-
-    fun iniciarSesion(onSuccess: () -> Unit) {
+    fun iniciarSesion(context: Context, alEntrar: () -> Unit) {
         viewModelScope.launch {
             estaCargando = true
             mensajeError = ""
 
-            val exito = repository.login(matricula, password)
+            try {
+                val exito = repository.login(matricula, password)
 
-            if (exito) {
-                //  Intentamos traer los datos del perfil
-                val resultado = repository.recuperarPerfil()
-                if (resultado != null && !resultado.contains("Error")) {
-                    perfilXml = resultado
-                    // Parseamos el XML a un objeto AlumnoPerfil
-                    alumnoData = repository.procesarDatosPerfil(resultado)
-                    onSuccess()
+                if (exito) {
+                    val workManager = WorkManager.getInstance(context)
+
+                    // Restricciones: Solo descargar si hay internet
+                    val constraints = Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+
+                    // 1. Definimos las peticiones (Requests)
+                    val fetchPerfil = OneTimeWorkRequestBuilder<FetchProfileWorker>().setConstraints(constraints).build()
+                    val savePerfil = OneTimeWorkRequestBuilder<SaveProfileWorker>().build()
+
+                    val fetchCarga = OneTimeWorkRequestBuilder<FetchCargaWorker>().setConstraints(constraints).build()
+                    val saveCarga = OneTimeWorkRequestBuilder<SaveCargaWorker>().build()
+
+                    val fetchKardex = OneTimeWorkRequestBuilder<FetchKardexWorker>().setConstraints(constraints).build()
+                    val saveKardex = OneTimeWorkRequestBuilder<SaveKardexWorker>().build()
+
+                    // 2. Encadenamos TODO (Punto 2.b de tu entrega: "Chain of workers")
+                    workManager.beginUniqueWork("sync_total", ExistingWorkPolicy.REPLACE, fetchPerfil)
+                        .then(savePerfil)
+                        .then(fetchCarga)
+                        .then(saveCarga)
+                        .then(fetchKardex)
+                        .then(saveKardex)
+                        .enqueue()
+
+                    alEntrar()
                 } else {
-                    mensajeError = "Sesión iniciada, pero no se pudo obtener el perfil."
+                    mensajeError = "Error de autenticación. Verifica tus datos."
                 }
-            } else {
-
-                mensajeError = "Error de autenticación. Verifica tus datos."
+            } catch (e: Exception) {
+                mensajeError = "Error de conexión: ${e.message}"
+            } finally {
+                estaCargando = false
             }
-            estaCargando = false
         }
     }
 }

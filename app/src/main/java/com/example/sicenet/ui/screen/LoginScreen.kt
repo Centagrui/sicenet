@@ -5,12 +5,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext // IMPORTANTE
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.sicenet.ui.SicenetViewModel
 
 @Composable
 fun LoginScreen(vm: SicenetViewModel, alEntrar: () -> Unit) {
+    // Obtenemos el contexto aquí para pasárselo al ViewModel
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -28,14 +31,13 @@ fun LoginScreen(vm: SicenetViewModel, alEntrar: () -> Unit) {
             label = { Text("Matrícula") },
             modifier = Modifier.fillMaxWidth()
         )
-//
+
         Spacer(modifier = Modifier.height(10.dp))
 
         OutlinedTextField(
             value = vm.password,
             onValueChange = { vm.password = it },
             label = { Text("Contraseña") },
-
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
@@ -47,8 +49,8 @@ fun LoginScreen(vm: SicenetViewModel, alEntrar: () -> Unit) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Button(
-            //perfil
-            onClick = { vm.iniciarSesion(alEntrar) },
+            // Ahora pasamos el context que obtuvimos arriba
+            onClick = { vm.iniciarSesion(context, alEntrar) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !vm.estaCargando
         ) {
