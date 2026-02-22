@@ -1,22 +1,22 @@
 package com.example.sicenet.data
 
 import com.example.sicenet.model.AlumnoPerfil
+import com.example.sicenet.model.Kardex
 import com.example.sicenet.model.Materia
 
-//repository
 interface ISicenetRepository {
-    suspend fun login(usuario: String, contrasena: String): Boolean
+    // Cambié usuario/contrasena por matricula/contrasenia para que coincida con tu SicenetRepository
+    suspend fun login(matricula: String, contrasenia: String): Boolean
 
     suspend fun recuperarPerfil(): String?
     fun procesarDatosPerfil(xml: String): AlumnoPerfil?
 
     suspend fun recuperarCargaAcademica(): String?
+    fun procesarCargaAcademica(xml: String): List<Materia>
+
     suspend fun recuperarKardex(): String?
+    fun procesarKardex(xml: String): List<Kardex>
 
     suspend fun recuperarCalificacionesUnidades(): String?
     suspend fun recuperarCalificacionesFinales(): String?
-
-    fun procesarCargaAcademica(xml: String): List<Materia> // <-- Esta es la que falta
-
-
 }

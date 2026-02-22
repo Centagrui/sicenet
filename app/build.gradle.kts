@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
-
 android {
     namespace = "com.example.sicenet"
     compileSdk = 36
@@ -85,5 +85,13 @@ dependencies {
         implementation("androidx.navigation:navigation-compose:2.7.7")
 
         implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+        val roomVersion = "2.6.1" // Usa camelCase para variables en Kotlin Script
+
+        implementation("androidx.room:room-runtime:$roomVersion")
+        implementation("androidx.room:room-ktx:$roomVersion")
+
+        implementation(libs.room.runtime)
+        implementation(libs.room.ktx)
+        ksp(libs.room.compiler)
     }
 }

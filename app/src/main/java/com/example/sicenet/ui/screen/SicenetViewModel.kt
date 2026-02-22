@@ -51,6 +51,9 @@ class SicenetViewModel(
     }
 
     fun iniciarSesion(context: Context, alEntrar: () -> Unit) {
+        // Evitamos disparar el login si ya se está cargando
+        if (estaCargando) return
+
         viewModelScope.launch {
             estaCargando = true
             mensajeError = ""
@@ -59,24 +62,19 @@ class SicenetViewModel(
                 val exito = repository.login(matricula, password)
 
                 if (exito) {
+                    // Configuración de WorkManager...
                     val workManager = WorkManager.getInstance(context)
-
-                    // Restricciones: Solo descargar si hay internet
                     val constraints = Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
 
-                    // 1. Definimos las peticiones (Requests)
                     val fetchPerfil = OneTimeWorkRequestBuilder<FetchProfileWorker>().setConstraints(constraints).build()
                     val savePerfil = OneTimeWorkRequestBuilder<SaveProfileWorker>().build()
-
                     val fetchCarga = OneTimeWorkRequestBuilder<FetchCargaWorker>().setConstraints(constraints).build()
                     val saveCarga = OneTimeWorkRequestBuilder<SaveCargaWorker>().build()
-
                     val fetchKardex = OneTimeWorkRequestBuilder<FetchKardexWorker>().setConstraints(constraints).build()
                     val saveKardex = OneTimeWorkRequestBuilder<SaveKardexWorker>().build()
 
-                    // 2. Encadenamos TODO (Punto 2.b de tu entrega: "Chain of workers")
                     workManager.beginUniqueWork("sync_total", ExistingWorkPolicy.REPLACE, fetchPerfil)
                         .then(savePerfil)
                         .then(fetchCarga)
@@ -85,15 +83,23 @@ class SicenetViewModel(
                         .then(saveKardex)
                         .enqueue()
 
+                    // PASO CLAVE: Detenemos el estado de carga ANTES de navegar
+                    estaCargando = false
+
+                    // Ejecutamos la navegación
                     alEntrar()
+
+                    // Opcional: Limpiamos contraseña para evitar re-logins accidentales
+                    password = ""
                 } else {
                     mensajeError = "Error de autenticación. Verifica tus datos."
+                    estaCargando = false
                 }
             } catch (e: Exception) {
                 mensajeError = "Error de conexión: ${e.message}"
-            } finally {
                 estaCargando = false
             }
+            // Eliminamos el 'finally' para tener control total de cuándo se apaga el indicador
         }
     }
 }

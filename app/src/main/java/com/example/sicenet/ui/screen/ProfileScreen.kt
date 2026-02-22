@@ -3,6 +3,8 @@ package com.example.sicenet.ui.screen
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,76 +14,90 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.sicenet.ui.SicenetViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(vm: SicenetViewModel) {
-
+fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) { // Integrado: Parámetro para el menú
     val scrollState = rememberScrollState()
     // Obtenemos los datos del alumno desde el ViewModel
     val alumno = vm.alumnoData
 
-    // LaunchedEffect se ejecuta una sola vez cuando la pantalla se carga (Unit)
+    // LaunchedEffect se ejecuta una sola vez cuando la pantalla se carga
     LaunchedEffect(Unit) {
-        // Si  el objeto alumno está vacío, mandamos llamar la petición al servidor
         if (alumno == null) {
             vm.cargarPerfil()
         }
     }
-//
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(scrollState),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Perfil Académico",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Si ya tenemos datos del alumno, dibujamos la tarjeta (Card)
-        if (alumno != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    //'DatoItem' para no repetir código de diseño
-                    DatoItem(label = "Nombre", valor = alumno.nombre)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp)) // Línea divisoria
-
-                    DatoItem(label = "Matrícula", valor = alumno.matricula)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    DatoItem(label = "Estatus", valor = alumno.estatus)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    DatoItem(label = "Carrera", valor = alumno.carrera)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    DatoItem(label = "Especialidad", valor = alumno.especialidad)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    DatoItem(label = "Semestre Actual", valor = alumno.semestreActual)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    DatoItem(label = "Créditos Totales", valor = alumno.creditosTotales)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Mi Perfil") },
+                navigationIcon = {
+                    IconButton(onClick = onOpenMenu) { // Botón para abrir el menú lateral
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menú"
+                        )
+                    }
                 }
-            }
-        } else {
-            // Si el objeto 'alumno' es nulo, mostramos un indicador de carga (Loading)
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Recuperando datos de Sicenet...")
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues) // IMPORTANTE: Evita que el contenido quede bajo la TopAppBar
+                .padding(16.dp)
+                .verticalScroll(scrollState),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Perfil Académico",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Si ya tenemos datos del alumno, dibujamos la tarjeta con toda la información
+            if (alumno != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        DatoItem(label = "Nombre", valor = alumno.nombre)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        DatoItem(label = "Matrícula", valor = alumno.matricula)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        DatoItem(label = "Estatus", valor = alumno.estatus)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        DatoItem(label = "Carrera", valor = alumno.carrera)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        DatoItem(label = "Especialidad", valor = alumno.especialidad)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        DatoItem(label = "Semestre Actual", valor = alumno.semestreActual)
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        DatoItem(label = "Créditos Totales", valor = alumno.creditosTotales)
+                    }
+                }
+            } else {
+                // Estado de carga si los datos aún no están listos
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("Recuperando datos de Sicenet...")
+                    }
                 }
             }
         }

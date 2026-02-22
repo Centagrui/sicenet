@@ -1,104 +1,129 @@
-package com.example.sicenet.ui
+package com.example.sicenet
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import android.app.Application
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DrawerValue.Closed
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.*
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.sicenet.data.RetrofitClient
+import com.example.sicenet.data.SicenetRepository
 import com.example.sicenet.navigation.Destinos
-import com.example.sicenet.ui.screen.*
+import com.example.sicenet.ui.SicenetViewModel
+import com.example.sicenet.ui.screen.* import com.example.sicenet.ui.theme.SicenetTheme
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SicenetApp(vm: SicenetViewModel) {
-    val navController = rememberNavController()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            SicenetTheme {
+                val context = LocalContext.current
+                val application = context.applicationContext as Application
+                val apiService = RetrofitClient.apiService
+                val repository = SicenetRepository(apiService)
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            ModalDrawerSheet {
-                Text("Menú SICENET", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
-                HorizontalDivider()
-
-                // Opción Perfil
-                NavigationDrawerItem(
-                    label = { Text(Destinos.Perfil.titulo) },
-                    selected = false,
-                    onClick = {
-                        navController.navigate(Destinos.Perfil.ruta)
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.Default.Person, contentDescription = null) }
+                // Aquí ya no debería marcar error porque la clase está definida abajo
+                val sicenetViewModel: SicenetViewModel = viewModel(
+                    factory = SicenetViewModelFactory(repository, application)
                 )
 
-                // Opción Carga Académica
-                NavigationDrawerItem(
-                    label = { Text(Destinos.Carga.titulo) },
-                    selected = false,
-                    onClick = {
-                        navController.navigate(Destinos.Carga.ruta)
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.Default.DateRange, contentDescription = null) }
-                )
+                val navController = rememberNavController()
+                val drawerState = rememberDrawerState(initialValue = Closed)
+                val scope = rememberCoroutineScope()
 
-                // Opción Kardex
-                NavigationDrawerItem(
-                    label = { Text(Destinos.Kardex.titulo) },
-                    selected = false,
-                    onClick = {
-                        navController.navigate(Destinos.Kardex.ruta)
-                        scope.launch { drawerState.close() }
-                    },
-                    icon = { Icon(Icons.Default.Star, contentDescription = null) }
-                )
-            }
-        }
-    ) {
-        Scaffold(
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = { Text("SICENET") },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    drawerContent = {
+                        ModalDrawerSheet {
+                            Text(
+                                "Menú SICENET",
+                                modifier = Modifier.padding(16.dp),
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            HorizontalDivider()
+
+                            NavigationDrawerItem(
+                                label = { Text("Mi Perfil") },
+                                selected = false,
+                                onClick = {
+                                    navController.navigate(Destinos.Perfil.ruta)
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                            NavigationDrawerItem(
+                                label = { Text("Carga Académica") },
+                                selected = false,
+                                onClick = {
+                                    navController.navigate(Destinos.Carga.ruta)
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                            NavigationDrawerItem(
+                                label = { Text("Kárdex") },
+                                selected = false,
+                                onClick = {
+                                    navController.navigate(Destinos.Kardex.ruta)
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
                         }
                     }
-                )
-            }
-        ) { paddingValues ->
-            NavHost(
-                navController = navController,
-                startDestination = "login",
-                modifier = Modifier.padding(paddingValues)
-            ) {
-                composable("login") {
-                    LoginScreen(vm) {
-                        navController.navigate(Destinos.Perfil.ruta) {
-                            popUpTo("login") { inclusive = true }
+                ) {
+                    NavHost(navController = navController, startDestination = "login") {
+                        composable("login") {
+                            LoginScreen(vm = sicenetViewModel) {
+                                navController.navigate(Destinos.Perfil.ruta) {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
+                        }
+
+                        composable(Destinos.Perfil.ruta) {
+                            ProfileScreen(
+                                vm = sicenetViewModel,
+                                onOpenMenu = { scope.launch { drawerState.open() } })
+                        }
+
+                        composable(Destinos.Carga.ruta) {
+                            CargaScreen(
+                                vm = sicenetViewModel,
+                                onOpenMenu = { scope.launch { drawerState.open() } })
+                        }
+
+                        composable(Destinos.Kardex.ruta) {
+                            KardexScreen(
+                                vm = sicenetViewModel,
+                                onOpenMenu = { scope.launch { drawerState.open() } })
                         }
                     }
                 }
-                composable(Destinos.Perfil.ruta) { ProfileScreen(vm) }
-                composable(Destinos.Carga.ruta) { CargaScreen(vm) }
-                composable(Destinos.Kardex.ruta) { KardexScreen(vm) }
             }
         }
     }
-}
+} // <--- ESTA LLAVE CIERRA LA CLAVE MAINACTIVITY
 
-@Composable
-fun KardexScreen(x0: SicenetViewModel) {
-    TODO("Not yet implemented")
-}
-
-@Composable
-fun CargaScreen(x0: SicenetViewModel) {
-    TODO("Not yet implemented")
+// LA FACTORY DEBE ESTAR FUERA DE LA CLASE PRINCIPAL
+class SicenetViewModelFactory(
+    private val repository: SicenetRepository,
+    private val application: Application
+) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(SicenetViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return SicenetViewModel(repository, application) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
 }
