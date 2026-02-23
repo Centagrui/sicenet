@@ -5,10 +5,10 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "carga_academica")
 data class Materia(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val clave: String,
+    @PrimaryKey val clave: String,
     val nombre: String,
-    val profesor: String,
+    val profesor: String = "",
+    val creditos: String = "0",
     val lunes: String = "",
     val martes: String = "",
     val miercoles: String = "",

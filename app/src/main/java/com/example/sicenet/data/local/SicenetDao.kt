@@ -6,7 +6,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SicenetDao {
-
     // --- PERFIL ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarPerfil(perfil: AlumnoPerfil)
@@ -22,7 +21,7 @@ interface SicenetDao {
     suspend fun limpiarCarga()
 
     @Query("SELECT * FROM carga_academica")
-    fun obtenerCarga(): Flow<List<Materia>>
+    fun obtenerCarga(): Flow<List<Materia>> // MANTENER SOLO ESTA
 
     // --- KÁRDEX ---
     @Query("SELECT * FROM kardex")
@@ -33,6 +32,4 @@ interface SicenetDao {
 
     @Query("DELETE FROM kardex")
     suspend fun limpiarKardex()
-    @Query("SELECT COUNT(*) FROM kardex")
-    suspend fun contarKardex(): Int
 }

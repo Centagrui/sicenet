@@ -13,11 +13,13 @@ import com.example.sicenet.model.Kardex
 import com.example.sicenet.data.local.SicenetDatabase
 import com.example.sicenet.data.workers.*
 import androidx.work.*
+import com.example.sicenet.data.SicenetLocalRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
 class SicenetViewModel(
     private val repository: ISicenetRepository,
+    private val localRepository: SicenetLocalRepository, // 1. Agrega el repo local aquí
     application: Application
 ) : AndroidViewModel(application) {
 
@@ -31,11 +33,9 @@ class SicenetViewModel(
     private val dao = SicenetDatabase.getDatabase(application).sicenetDao()
 
     // Usamos Flow directamente. Compose lo consumirá con .collectAsState()
-    val perfilLocal: Flow<AlumnoPerfil?> = dao.obtenerPerfil()
-    val materiasCarga: Flow<List<Materia>> = dao.obtenerCarga()
-
-    // CORRECCIÓN: Solo una declaración de kardexLocal
-    val kardexLocal: Flow<List<Kardex>> = dao.obtenerKardex()
+    val perfilLocal = localRepository.perfil
+    val materiasCarga = localRepository.cargaAcademica
+    val kardexLocal = localRepository.kardex
 
     // 3. --- BLOQUE INIT ---
     init {

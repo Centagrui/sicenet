@@ -37,5 +37,12 @@ class FetchKardexWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
             Log.e("DEBUG_KARDEX", "Error: ${e.message}")
             Result.retry()
         }
+        // Dentro de doWork
+        val xmlFull = repository.recuperarKardex() ?: return Result.failure()
+// Limpiamos el XML para que quepa en los 10KB de salida
+        val jsonLimpio = xmlFull.substringAfter("<getAllKardexConPromedioByAlumnoResult>")
+            .substringBefore("</getAllKardexConPromedioByAlumnoResult>")
+
+        return Result.success(workDataOf("kardex_json" to jsonLimpio)) // Datos de SALIDA
     }
 }

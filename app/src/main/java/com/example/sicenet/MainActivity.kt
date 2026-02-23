@@ -18,7 +18,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.sicenet.data.RetrofitClient
+import com.example.sicenet.data.SicenetLocalRepository
 import com.example.sicenet.data.SicenetRepository
+import com.example.sicenet.data.local.SicenetDatabase
 import com.example.sicenet.navigation.Destinos
 import com.example.sicenet.ui.SicenetViewModel
 import com.example.sicenet.ui.screen.* import com.example.sicenet.ui.theme.SicenetTheme
@@ -31,12 +33,16 @@ class MainActivity : ComponentActivity() {
             SicenetTheme {
                 val context = LocalContext.current
                 val application = context.applicationContext as Application
+
+                // 1. Inicializamos los repositorios (Red y Local)
                 val apiService = RetrofitClient.apiService
                 val repository = SicenetRepository(apiService)
+                val database = SicenetDatabase.getDatabase(application)
+                val localRepo = SicenetLocalRepository(database.sicenetDao())
 
-                // Aquí ya no debería marcar error porque la clase está definida abajo
+                // 2. Usamos la Factory actualizada con los 3 parámetros necesarios
                 val sicenetViewModel: SicenetViewModel = viewModel(
-                    factory = SicenetViewModelFactory(repository, application)
+                    factory = SicenetViewModelFactory(repository, localRepo, application)
                 )
 
                 val navController = rememberNavController()
@@ -54,8 +60,9 @@ class MainActivity : ComponentActivity() {
                             )
                             HorizontalDivider()
 
+                            // Usamos el objeto Destinos para mantener consistencia
                             NavigationDrawerItem(
-                                label = { Text("Mi Perfil") },
+                                label = { Text(Destinos.Perfil.titulo) },
                                 selected = false,
                                 onClick = {
                                     navController.navigate(Destinos.Perfil.ruta)
@@ -63,7 +70,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             NavigationDrawerItem(
-                                label = { Text("Carga Académica") },
+                                label = { Text(Destinos.Carga.titulo) },
                                 selected = false,
                                 onClick = {
                                     navController.navigate(Destinos.Carga.ruta)
@@ -71,10 +78,18 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             NavigationDrawerItem(
-                                label = { Text("Kárdex") },
+                                label = { Text(Destinos.Kardex.titulo) },
                                 selected = false,
                                 onClick = {
                                     navController.navigate(Destinos.Kardex.ruta)
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
+                            NavigationDrawerItem(
+                                label = { Text(Destinos.Finales.titulo) },
+                                selected = false,
+                                onClick = {
+                                    navController.navigate(Destinos.Finales.ruta)
                                     scope.launch { drawerState.close() }
                                 }
                             )
@@ -91,38 +106,37 @@ class MainActivity : ComponentActivity() {
                         }
 
                         composable(Destinos.Perfil.ruta) {
-                            ProfileScreen(
-                                vm = sicenetViewModel,
-                                onOpenMenu = { scope.launch { drawerState.open() } })
+                            ProfileScreen(vm = sicenetViewModel, onOpenMenu = { scope.launch { drawerState.open() } })
                         }
 
                         composable(Destinos.Carga.ruta) {
-                            CargaScreen(
-                                vm = sicenetViewModel,
-                                onOpenMenu = { scope.launch { drawerState.open() } })
+                            CargaScreen(vm = sicenetViewModel, onOpenMenu = { scope.launch { drawerState.open() } })
                         }
 
                         composable(Destinos.Kardex.ruta) {
-                            KardexScreen(
-                                vm = sicenetViewModel,
-                                onOpenMenu = { scope.launch { drawerState.open() } })
+                            KardexScreen(vm = sicenetViewModel, onOpenMenu = { scope.launch { drawerState.open() } })
+                        }
+
+                        composable(Destinos.Finales.ruta) {
+                            FinalesScreen(vm = sicenetViewModel, onOpenMenu = { scope.launch { drawerState.open() } })
                         }
                     }
                 }
             }
         }
     }
-} // <--- ESTA LLAVE CIERRA LA CLAVE MAINACTIVITY
+}
 
-// LA FACTORY DEBE ESTAR FUERA DE LA CLASE PRINCIPAL
+// 3. FACTORY ACTUALIZADA: Ahora recibe los 3 parámetros que pide SicenetViewModel
 class SicenetViewModelFactory(
     private val repository: SicenetRepository,
+    private val localRepository: SicenetLocalRepository,
     private val application: Application
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SicenetViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SicenetViewModel(repository, application) as T
+            return SicenetViewModel(repository, localRepository, application) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

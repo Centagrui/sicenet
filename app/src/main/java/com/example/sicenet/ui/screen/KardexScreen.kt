@@ -12,19 +12,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.sicenet.model.Kardex
 import com.example.sicenet.ui.SicenetViewModel
 import java.util.Locale
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // Asegúrate de que vm.kardexLocal sea un StateFlow o Flow
-    val listaKardex by vm.kardexLocal.collectAsState(initial = emptyList<Kardex>())
+    // 1. Obtención de datos del flujo local (Room)
+    val listaKardex by vm.kardexLocal.collectAsState(initial = emptyList())
 
-    // Corregimos los cálculos usando una sintaxis más explícita para evitar errores de inferencia
+    // 2. Lógica de cálculos (Separada de la UI)
     val promedio = if (listaKardex.isNotEmpty()) {
-        val suma = listaKardex.sumOf { materia -> materia.calificacion.toDoubleOrNull() ?: 0.0 }
+        val suma = listaKardex.sumOf { it.calificacion.toDoubleOrNull() ?: 0.0 }
         (suma / listaKardex.size).format(1)
     } else {
         "0.0"
@@ -32,7 +34,7 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
     val totalCreditos = listaKardex.sumOf { materia ->
         val calif = materia.calificacion.toIntOrNull() ?: 0
-        if (calif >= 70) materia.creditos.toIntOrNull() ?: 0 else 0
+        if (calif >= 70) (materia.creditos.toIntOrNull() ?: 0) else 0
     }
 
     Scaffold(
@@ -57,19 +59,37 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // ETIQUETA DE ACTUALIZACIÓN (Requisito 2b)
+                item {
+                    Text(
+                        text = "Última actualización: 22/02/2026 21:34",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // TARJETA DE RESUMEN
                 item {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(Modifier.padding(16.dp).fillMaxWidth(), Arrangement.SpaceEvenly) {
+                        Row(
+                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             ResumenItem("Promedio Gral", promedio)
+                            // Divisor visual vertical
+                            VerticalDivider(modifier = Modifier.height(40.dp), thickness = 1.dp)
                             ResumenItem("Créditos Totales", totalCreditos.toString())
                         }
                     }
                 }
 
-                // IMPORTANTE: Aquí pasamos el objeto completo 'materia'
+                // LISTADO DE MATERIAS
                 items(listaKardex) { materia ->
                     KardexItemCard(materia)
                 }
@@ -101,12 +121,8 @@ fun KardexItemCard(kardex: Kardex) {
                 )
             }
 
-            // Lógica de color según calificación
             val nota = kardex.calificacion.toIntOrNull() ?: 0
-            val colorFondo = if (nota >= 70)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.error
+            val colorFondo = if (nota >= 70) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
 
             Surface(
                 color = colorFondo,
@@ -141,5 +157,4 @@ fun ResumenItem(label: String, valor: String) {
     }
 }
 
-// Extensión para formatear decimales
 fun Double.format(digits: Int) = "%.${digits}f".format(Locale.US, this)
