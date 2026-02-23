@@ -18,4 +18,11 @@ class SicenetLocalRepository(private val dao: SicenetDao) {
     }
 
     suspend fun guardarKardex(items: List<Kardex>) = dao.insertarKardex(items)
+    // Dentro de SicenetLocalRepository
+    val unidades: Flow<List<UnidadCalificacion>> = dao.obtenerUnidades()
+
+    suspend fun guardarUnidades(lista: List<UnidadCalificacion>) {
+        dao.limpiarUnidades()
+        dao.insertarUnidades(lista)
+    }
 }

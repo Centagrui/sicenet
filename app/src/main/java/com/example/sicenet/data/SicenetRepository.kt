@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.sicenet.model.AlumnoPerfil
 import com.example.sicenet.model.Materia
 import com.example.sicenet.model.Kardex
+import com.example.sicenet.model.UnidadCalificacion
 
 class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository {
 
@@ -184,8 +185,7 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
                             nombre = materia,
                             profesor = docente,
                             // El resto de campos los mandamos vacíos como pediste
-                            lunes = "", martes = "", miercoles = "", jueves = "", viernes = ""
-                        )
+                            lunes = "", martes = "", miercoles = "", jueves = "", viernes = "")
                     )
                 }
             }
@@ -216,6 +216,75 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
             android.util.Log.d("DEBUG_SAVE_KARDEX", "¡ÉXITO! Se procesaron ${lista.size} materias.")
         } catch (e: Exception) {
             android.util.Log.e("PARSER_ERROR", "Error: ${e.message}")
+        }
+        return lista
+    }
+    // --- PROCESAR UNIDADES (Para UnidadesScreen y SaveUnidadesWorker) ---
+    override fun procesarUnidades(xml: String): List<UnidadCalificacion> {
+        val lista = mutableListOf<UnidadCalificacion>()
+        try {
+            val contenidoJson = xml.substringAfter("<getCalifUnidadesByAlumnoResult>")
+                .substringBefore("</getCalifUnidadesByAlumnoResult>")
+
+            // 1. Buscamos cada bloque de materia entre llaves { ... }
+            val bloqueMateriaRegex = """\{(.*?)\}""".toRegex(RegexOption.DOT_MATCHES_ALL)
+            val bloques = bloqueMateriaRegex.findAll(contenidoJson)
+
+            bloques.forEach { bloque ->
+                val textoBloque = bloque.value
+
+                // 2. Extraer el nombre de la materia
+                val nombreMateria = """\"Materia\"\s*:\s*\"(.*?)\"""".toRegex()
+                    .find(textoBloque)?.groupValues?.get(1) ?: "Materia Desconocida"
+
+                // 3. Extraer C1, C2, C3... (hasta C13 si existen)
+                // Solo agregamos las que no sean "null" o vacías
+                for (i in 1..13) {
+                    val califRegex = """\"C$i\"\s*:\s*\"(.*?)\"""".toRegex()
+                    val coincidencia = califRegex.find(textoBloque)
+
+                    val valor = coincidencia?.groupValues?.get(1)
+
+                    // Si tiene calificación (aunque sea "0"), la agregamos como unidad
+                    if (valor != null && valor != "null") {
+                        lista.add(UnidadCalificacion(
+                            materia = nombreMateria,
+                            unidad = i.toString(),
+                            calificacion = valor
+                        ))
+                    }
+                }
+            }
+            Log.d("DEBUG_UNIDADES", "Total de registros procesados: ${lista.size}")
+        } catch (e: Exception) {
+            Log.e("PARSER_ERROR", "Error procesando unidades: ${e.message}")
+        }
+        return lista
+    }
+
+    // --- PROCESAR CALIFICACIONES FINALES (Para FinalesScreen) ---
+    override fun procesarCalificacionesFinales(xml: String): List<Kardex> {
+        val lista = mutableListOf<Kardex>()
+        try {
+            val contenidoJson = xml.substringAfter("<getAllCalifFinalByAlumnosResult>")
+                .substringBefore("</getAllCalifFinalByAlumnosResult>")
+
+            // Reutilizamos el modelo Kardex o puedes crear uno de Finales
+            // Buscamos Materia y Calif
+            val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"calif\"\s*:\s*(\d+)""".toRegex(RegexOption.IGNORE_CASE)
+            val coincidencias = patron.findAll(contenidoJson)
+
+            coincidencias.forEach { match ->
+                lista.add(Kardex(
+                    materia = match.groupValues[1],
+                    calificacion = match.groupValues[2],
+                    creditos = "0",
+                    periodo = "Actual"
+                ))
+            }
+            Log.d("DEBUG_FINALES", "Calificaciones finales procesadas: ${lista.size}")
+        } catch (e: Exception) {
+            Log.e("PARSER_ERROR_FINALES", "Error: ${e.message}")
         }
         return lista
     }

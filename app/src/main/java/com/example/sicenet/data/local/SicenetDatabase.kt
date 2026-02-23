@@ -7,11 +7,12 @@ import androidx.room.RoomDatabase
 import com.example.sicenet.model.AlumnoPerfil
 import com.example.sicenet.model.Materia
 import com.example.sicenet.model.Kardex
+import com.example.sicenet.model.UnidadCalificacion
 
 
 @Database(
-    entities = [AlumnoPerfil::class, Materia::class, Kardex::class],
-    version = 1,
+    entities = [AlumnoPerfil::class, Materia::class, Kardex::class, UnidadCalificacion::class],
+    version = 3,
     exportSchema = false
 )
 abstract class SicenetDatabase : RoomDatabase() {

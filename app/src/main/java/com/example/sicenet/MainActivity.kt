@@ -34,13 +34,13 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val application = context.applicationContext as Application
 
-                // 1. Inicializamos los repositorios (Red y Local)
+                // 1. Inicialización ÚNICA de dependencias
                 val apiService = RetrofitClient.apiService
                 val repository = SicenetRepository(apiService)
                 val database = SicenetDatabase.getDatabase(application)
                 val localRepo = SicenetLocalRepository(database.sicenetDao())
 
-                // 2. Usamos la Factory actualizada con los 3 parámetros necesarios
+                // 2. Creación del ViewModel con su Factory
                 val sicenetViewModel: SicenetViewModel = viewModel(
                     factory = SicenetViewModelFactory(repository, localRepo, application)
                 )
@@ -60,7 +60,6 @@ class MainActivity : ComponentActivity() {
                             )
                             HorizontalDivider()
 
-                            // Usamos el objeto Destinos para mantener consistencia
                             NavigationDrawerItem(
                                 label = { Text(Destinos.Perfil.titulo) },
                                 selected = false,
@@ -93,6 +92,14 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { drawerState.close() }
                                 }
                             )
+                            NavigationDrawerItem(
+                                label = { Text("Calificaciones por Unidad") },
+                                selected = false,
+                                onClick = {
+                                    navController.navigate("unidades")
+                                    scope.launch { drawerState.close() }
+                                }
+                            )
                         }
                     }
                 ) {
@@ -103,6 +110,13 @@ class MainActivity : ComponentActivity() {
                                     popUpTo("login") { inclusive = true }
                                 }
                             }
+                        }
+
+                        composable("unidades") {
+                            UnidadesScreen(
+                                vm = sicenetViewModel,
+                                onOpenMenu = { scope.launch { drawerState.open() } }
+                            )
                         }
 
                         composable(Destinos.Perfil.ruta) {
@@ -127,7 +141,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// 3. FACTORY ACTUALIZADA: Ahora recibe los 3 parámetros que pide SicenetViewModel
 class SicenetViewModelFactory(
     private val repository: SicenetRepository,
     private val localRepository: SicenetLocalRepository,
@@ -136,7 +149,11 @@ class SicenetViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SicenetViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SicenetViewModel(repository, localRepository, application) as T
+            return SicenetViewModel(
+                repository = repository,
+                localRepository = localRepository,
+                application = application
+            ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

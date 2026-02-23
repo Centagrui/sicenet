@@ -32,4 +32,14 @@ interface SicenetDao {
 
     @Query("DELETE FROM kardex")
     suspend fun limpiarKardex()
+
+    // Dentro de SicenetDao.kt
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarUnidades(unidades: List<UnidadCalificacion>)
+
+    @Query("DELETE FROM calificaciones_unidades")
+    suspend fun limpiarUnidades()
+
+    @Query("SELECT * FROM calificaciones_unidades")
+    fun obtenerUnidades(): Flow<List<UnidadCalificacion>>
 }

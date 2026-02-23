@@ -20,8 +20,10 @@ import kotlinx.coroutines.launch
 class SicenetViewModel(
     private val repository: ISicenetRepository,
     private val localRepository: SicenetLocalRepository, // 1. Agrega el repo local aquí
+
     application: Application
 ) : AndroidViewModel(application) {
+
 
     // 1. --- ESTADO DE LOGIN ---
     var matricula by mutableStateOf("")
@@ -100,5 +102,20 @@ class SicenetViewModel(
                 estaCargando = false
             }
         }
+    }
+    // En SicenetViewModel
+    val unidadesLocal = localRepository.unidades // Este viene del DAO
+
+    fun sincronizarUnidades(context: Context) {
+        val workManager = WorkManager.getInstance(context)
+
+        val syncRequest = OneTimeWorkRequestBuilder<FetchUnidadesWorker>().build()
+        val saveRequest = OneTimeWorkRequestBuilder<SaveUnidadesWorker>().build()
+
+        workManager.beginUniqueWork(
+            "sync_unidades_unique",
+            ExistingWorkPolicy.REPLACE,
+            syncRequest
+        ).then(saveRequest).enqueue()
     }
 }
