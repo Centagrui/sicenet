@@ -7,7 +7,9 @@ import com.example.sicenet.model.Kardex
 
 class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository {
 
-    private var sessionCookie: String? = null
+    companion object { // Esto hace que la cookie sea compartida por TODOS los repositorios
+        var sessionCookie: String? = null
+    }
 
     override suspend fun login(matricula: String, contrasenia: String): Boolean {
         val soapLogin = """
@@ -154,63 +156,67 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
     }
 
     override fun procesarCargaAcademica(xml: String): List<Materia> {
-        val listaMaterias = mutableListOf<Materia>()
+        val lista = mutableListOf<Materia>()
         try {
-            val jsonRaw = xml.substringAfter("<getCargaAcademicaByAlumnoResult>")
+            // Extraemos el bloque de texto que contiene el JSON
+            val contenidoJson = xml.substringAfter("<getCargaAcademicaByAlumnoResult>")
                 .substringBefore("</getCargaAcademicaByAlumnoResult>")
 
-            val materiasRaw = jsonRaw.split("},{")
+            // Definimos el patrón de búsqueda:
+            // Buscamos "Campo": "Valor", ignorando lo que haya en medio con .*?
+            val patron = """
+            "Docente"\s*:\s*"(.*?)".*?
+            "Materia"\s*:\s*"(.*?)".*?
+            "Grupo"\s*:\s*"(.*?)"
+        """.trimIndent().replace("\n", "").toRegex(RegexOption.DOT_MATCHES_ALL)
 
-            materiasRaw.forEach { materiaStr ->
-                val nombre = materiaStr.substringAfter("\"materia\":\"", "").substringBefore("\"")
-                val clave = materiaStr.substringAfter("\"clave\":\"", "").substringBefore("\"")
-                val docente = materiaStr.substringAfter("\"docente\":\"", "").substringBefore("\"")
+            val coincidencias = patron.findAll(contenidoJson)
 
-                if (nombre.isNotEmpty()) {
-                    listaMaterias.add(
+            coincidencias.forEach { match ->
+                val docente = match.groupValues[1]
+                val materia = match.groupValues[2]
+                val grupo   = match.groupValues[3]
+
+                if (materia.isNotBlank()) {
+                    lista.add(
                         Materia(
-                            clave = clave,
-                            nombre = nombre,
+                            clave = grupo,      // Usamos el grupo como clave o ID temporal
+                            nombre = materia,
                             profesor = docente,
+                            // El resto de campos los mandamos vacíos como pediste
                             lunes = "", martes = "", miercoles = "", jueves = "", viernes = ""
                         )
                     )
                 }
             }
+            Log.d("DEBUG_SAVE", "Materias detectadas: ${lista.size}")
         } catch (e: Exception) {
-            Log.e("PARSER_CARGA", "Error: ${e.message}")
+            Log.e("PARSER_ERROR", "Error: ${e.message}")
         }
-        return listaMaterias
+        return lista
     }
     override fun procesarKardex(xml: String): List<Kardex> {
-        val listaKardex = mutableListOf<Kardex>()
+        val lista = mutableListOf<Kardex>()
         try {
-            val jsonRaw = xml.substringAfter("<getAllKardexConPromedioByAlumnoResult>")
+            val contenidoJson = xml.substringAfter("<getAllKardexConPromedioByAlumnoResult>")
                 .substringBefore("</getAllKardexConPromedioByAlumnoResult>")
 
-            val items = jsonRaw.split("},{")
+            // Este patrón busca "Materia":"VALOR", "Cdts":VALOR, "Calif":VALOR
+            val patron = """\"Materia\"\s*:\s*\"(.*?)\".*?\"Cdts\"\s*:\s*(\d+).*?\"Calif\"\s*:\s*(\d+)""".toRegex()
+            val coincidencias = patron.findAll(contenidoJson)
 
-            items.forEach { item ->
-                val materiaNombre = item.substringAfter("\"materia\":\"", "").substringBefore("\"")
-                // Los extraemos como String
-                val califStr = item.substringAfter("\"calif\":", "0").substringBefore(",").replace("\"", "").trim()
-                val crStr = item.substringAfter("\"cr\":", "0").substringBefore(",").replace("\"", "").trim()
-                val periodoStr = item.substringAfter("\"periodo\":\"", "N/A").substringBefore("\"")
-
-                if (materiaNombre.isNotEmpty()) {
-                    listaKardex.add(
-                        Kardex(
-                            materia = materiaNombre,
-                            calificacion = califStr, // Asegúrate que tu modelo Kardex pida String aquí
-                            creditos = crStr,       // Asegúrate que tu modelo Kardex pida String aquí
-                            periodo = periodoStr
-                        )
-                    )
-                }
+            coincidencias.forEach { match ->
+                lista.add(Kardex(
+                    materia = match.groupValues[1],
+                    creditos = match.groupValues[2],
+                    calificacion = match.groupValues[3],
+                    periodo = ""
+                ))
             }
+            android.util.Log.d("DEBUG_SAVE_KARDEX", "¡ÉXITO! Se procesaron ${lista.size} materias.")
         } catch (e: Exception) {
-            Log.e("PARSER_KARDEX", "Error: ${e.message}")
+            android.util.Log.e("PARSER_ERROR", "Error: ${e.message}")
         }
-        return listaKardex
+        return lista
     }
 }

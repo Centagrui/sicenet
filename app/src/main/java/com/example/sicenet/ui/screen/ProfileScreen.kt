@@ -13,31 +13,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.sicenet.ui.SicenetViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) { // Integrado: Parámetro para el menú
+fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     val scrollState = rememberScrollState()
-    // Obtenemos los datos del alumno desde el ViewModel
-    val alumno = vm.alumnoData
 
-    // LaunchedEffect se ejecuta una sola vez cuando la pantalla se carga
-    LaunchedEffect(Unit) {
-        if (alumno == null) {
-            vm.cargarPerfil()
-        }
-    }
+    // CORRECCIÓN: Observamos el perfil desde Room (base de datos local)
+    val alumno by vm.perfilLocal.collectAsState(initial = null)
+
+    // Ya no necesitas el LaunchedEffect para cargarPerfil(),
+    // porque el Worker de inicio de sesión ya guardó los datos en Room.
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Mi Perfil") },
                 navigationIcon = {
-                    IconButton(onClick = onOpenMenu) { // Botón para abrir el menú lateral
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Menú"
-                        )
+                    IconButton(onClick = onOpenMenu) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menú")
                     }
                 }
             )
@@ -46,7 +42,7 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) { // Integrado: 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // IMPORTANTE: Evita que el contenido quede bajo la TopAppBar
+                .padding(paddingValues)
                 .padding(16.dp)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -59,36 +55,35 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) { // Integrado: 
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Si ya tenemos datos del alumno, dibujamos la tarjeta con toda la información
             if (alumno != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        DatoItem(label = "Nombre", valor = alumno.nombre)
+                        // Usamos !! porque ya verificamos que alumno no es nulo
+                        DatoItem(label = "Nombre", valor = alumno!!.nombre)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                        DatoItem(label = "Matrícula", valor = alumno.matricula)
+                        DatoItem(label = "Matrícula", valor = alumno!!.matricula)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                        DatoItem(label = "Estatus", valor = alumno.estatus)
+                        DatoItem(label = "Estatus", valor = alumno!!.estatus)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                        DatoItem(label = "Carrera", valor = alumno.carrera)
+                        DatoItem(label = "Carrera", valor = alumno!!.carrera)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                        DatoItem(label = "Especialidad", valor = alumno.especialidad)
+                        DatoItem(label = "Especialidad", valor = alumno!!.especialidad)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                        DatoItem(label = "Semestre Actual", valor = alumno.semestreActual)
+                        DatoItem(label = "Semestre Actual", valor = alumno!!.semestreActual)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                        DatoItem(label = "Créditos Totales", valor = alumno.creditosTotales)
+                        DatoItem(label = "Créditos Totales", valor = alumno!!.creditosTotales)
                     }
                 }
             } else {
-                // Estado de carga si los datos aún no están listos
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -96,14 +91,13 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) { // Integrado: 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Recuperando datos de Sicenet...")
+                        Text("Esperando datos locales...")
                     }
                 }
             }
         }
     }
 }
-
 @Composable
 fun DatoItem(label: String, valor: String) {
     Column(modifier = Modifier.fillMaxWidth()) {

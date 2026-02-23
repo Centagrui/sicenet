@@ -18,8 +18,8 @@ import com.example.sicenet.ui.SicenetViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) { // Añadimos onOpenMenu
+// CargaScreen.kt
     val materias by vm.materiasCarga.collectAsState(initial = emptyList())
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -51,21 +51,35 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) { // Añadimos onO
 @Composable
 fun MateriaCard(materia: Materia) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = materia.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(text = "Profesor: ${materia.profesor}", style = MaterialTheme.typography.bodySmall)
-            Spacer(modifier = Modifier.height(8.dp))
+            // MATERIA
+            Text(
+                text = materia.nombre,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
 
-            // Horarios simplificados
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                HorarioItem("Lun", materia.lunes)
-                HorarioItem("Mar", materia.martes)
-                HorarioItem("Mie", materia.miercoles)
-                HorarioItem("Jue", materia.jueves)
-                HorarioItem("Vie", materia.viernes)
+            // DOCENTE
+            Text(
+                text = "Prof: ${materia.profesor}",
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // GRUPO (Lo guardamos en 'clave' en el parser de arriba)
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = MaterialTheme.shapes.small
+            ) {
+                Text(
+                    text = "Grupo: ${materia.clave}",
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
         }
     }

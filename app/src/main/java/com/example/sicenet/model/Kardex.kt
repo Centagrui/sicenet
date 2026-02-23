@@ -8,6 +8,6 @@ data class Kardex(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val materia: String,
     val calificacion: String,
-    val periodo: String,
-    val creditos: String
+    val creditos: String,
+    val periodo: String
 )

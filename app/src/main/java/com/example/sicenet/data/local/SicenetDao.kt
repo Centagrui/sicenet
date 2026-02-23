@@ -6,14 +6,15 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SicenetDao {
-    // Operaciones para Perfil
+
+    // --- PERFIL ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarPerfil(perfil: AlumnoPerfil)
 
     @Query("SELECT * FROM perfil_alumno LIMIT 1")
     fun obtenerPerfil(): Flow<AlumnoPerfil?>
 
-    // Operaciones para Carga Académica
+    // --- CARGA ACADÉMICA ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarCarga(materias: List<Materia>)
 
@@ -23,10 +24,15 @@ interface SicenetDao {
     @Query("SELECT * FROM carga_academica")
     fun obtenerCarga(): Flow<List<Materia>>
 
-    // Operaciones para Kardex
+    // --- KÁRDEX ---
+    @Query("SELECT * FROM kardex")
+    fun obtenerKardex(): Flow<List<Kardex>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarKardex(items: List<Kardex>)
 
-    @Query("SELECT * FROM kardex")
-    fun obtenerKardex(): Flow<List<Kardex>>
+    @Query("DELETE FROM kardex")
+    suspend fun limpiarKardex()
+    @Query("SELECT COUNT(*) FROM kardex")
+    suspend fun contarKardex(): Int
 }

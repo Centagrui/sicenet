@@ -8,15 +8,23 @@ import com.example.sicenet.data.RetrofitClient
 import com.example.sicenet.data.SicenetRepository
 
 class FetchCargaWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
+    // FetchCargaWorker.kt
     override suspend fun doWork(): Result {
         val repository = SicenetRepository(RetrofitClient.apiService)
         return try {
             val xml = repository.recuperarCargaAcademica()
             if (xml != null) {
+                // ESTO TE DIRÁ SI EL SERVIDOR RESPONDIÓ ALGO
+                android.util.Log.d("DEBUG_XML", "XML Carga Recibido: $xml")
                 Result.success(workDataOf("carga_xml" to xml))
-            } else Result.failure()
+            } else {
+                android.util.Log.e("DEBUG_XML", "XML Carga llegó NULO")
+                Result.failure()
+            }
         } catch (e: Exception) {
+            android.util.Log.e("DEBUG_XML", "Error en Fetch: ${e.message}")
             Result.retry()
         }
     }
+
 }

@@ -16,42 +16,43 @@ import androidx.work.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
-// Usamos AndroidViewModel para poder acceder a la base de datos con el context de la app
 class SicenetViewModel(
     private val repository: ISicenetRepository,
     application: Application
 ) : AndroidViewModel(application) {
 
-    // --- ESTADO DE LOGIN ---
+    // 1. --- ESTADO DE LOGIN ---
     var matricula by mutableStateOf("")
     var password by mutableStateOf("")
     var estaCargando by mutableStateOf(false)
     var mensajeError by mutableStateOf("")
 
-    // --- ACCESO A BASE DE DATOS LOCAL (ROOM) ---
+    // 2. --- ACCESO A BASE DE DATOS LOCAL (ROOM) ---
     private val dao = SicenetDatabase.getDatabase(application).sicenetDao()
 
-    // Estas variables son "Flujos" que se actualizan solos cuando la DB cambia
+    // Usamos Flow directamente. Compose lo consumirá con .collectAsState()
     val perfilLocal: Flow<AlumnoPerfil?> = dao.obtenerPerfil()
     val materiasCarga: Flow<List<Materia>> = dao.obtenerCarga()
+
+    // CORRECCIÓN: Solo una declaración de kardexLocal
     val kardexLocal: Flow<List<Kardex>> = dao.obtenerKardex()
 
-    // Mantenemos estas por compatibilidad con tu código anterior si es necesario
-    var perfilXml by mutableStateOf<String?>(null)
-    var alumnoData by mutableStateOf<AlumnoPerfil?>(null)
-
-    fun cargarPerfil() {
+    // 3. --- BLOQUE INIT ---
+    init {
         viewModelScope.launch {
-            val xml = repository.recuperarPerfil()
-            perfilXml = xml
-            if (xml != null && !xml.contains("Error")) {
-                alumnoData = repository.procesarDatosPerfil(xml)
+            // Observamos el flujo del Kardex para depuración
+            kardexLocal.collect { lista ->
+                Log.d("DEBUG_SICENET", "Kárdex actualizado en DB: ${lista.size} materias")
             }
         }
     }
 
+    // 4. --- VARIABLES DE ESTADO TEMPORAL ---
+    var alumnoData by mutableStateOf<AlumnoPerfil?>(null)
+
+    // 5. --- FUNCIONES ---
+
     fun iniciarSesion(context: Context, alEntrar: () -> Unit) {
-        // Evitamos disparar el login si ya se está cargando
         if (estaCargando) return
 
         viewModelScope.launch {
@@ -62,44 +63,42 @@ class SicenetViewModel(
                 val exito = repository.login(matricula, password)
 
                 if (exito) {
-                    // Configuración de WorkManager...
                     val workManager = WorkManager.getInstance(context)
+
                     val constraints = Constraints.Builder()
                         .setRequiredNetworkType(NetworkType.CONNECTED)
                         .build()
 
+                    // Definición de Workers
                     val fetchPerfil = OneTimeWorkRequestBuilder<FetchProfileWorker>().setConstraints(constraints).build()
                     val savePerfil = OneTimeWorkRequestBuilder<SaveProfileWorker>().build()
+
                     val fetchCarga = OneTimeWorkRequestBuilder<FetchCargaWorker>().setConstraints(constraints).build()
                     val saveCarga = OneTimeWorkRequestBuilder<SaveCargaWorker>().build()
-                    val fetchKardex = OneTimeWorkRequestBuilder<FetchKardexWorker>().setConstraints(constraints).build()
-                    val saveKardex = OneTimeWorkRequestBuilder<SaveKardexWorker>().build()
 
+                    val fetchKardex = OneTimeWorkRequestBuilder<FetchKardexWorker>().setConstraints(constraints).build()
+                   // val saveKardex = OneTimeWorkRequestBuilder<SaveKardexWorker>().build()
+
+                    // Encadenamiento de tareas
                     workManager.beginUniqueWork("sync_total", ExistingWorkPolicy.REPLACE, fetchPerfil)
                         .then(savePerfil)
                         .then(fetchCarga)
                         .then(saveCarga)
                         .then(fetchKardex)
-                        .then(saveKardex)
+                        //.then(saveKardex)
                         .enqueue()
 
-                    // PASO CLAVE: Detenemos el estado de carga ANTES de navegar
                     estaCargando = false
-
-                    // Ejecutamos la navegación
                     alEntrar()
-
-                    // Opcional: Limpiamos contraseña para evitar re-logins accidentales
                     password = ""
                 } else {
-                    mensajeError = "Error de autenticación. Verifica tus datos."
+                    mensajeError = "Matrícula o contraseña incorrecta."
                     estaCargando = false
                 }
             } catch (e: Exception) {
-                mensajeError = "Error de conexión: ${e.message}"
+                mensajeError = "Sin conexión al servidor"
                 estaCargando = false
             }
-            // Eliminamos el 'finally' para tener control total de cuándo se apaga el indicador
         }
     }
 }
