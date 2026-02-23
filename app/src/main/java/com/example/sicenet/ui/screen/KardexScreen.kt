@@ -1,5 +1,6 @@
 package com.example.sicenet.ui.screen
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -7,10 +8,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -21,16 +27,28 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // 1. Obtención de datos del flujo local (Room)
+    val context = LocalContext.current
     val listaKardex by vm.kardexLocal.collectAsState(initial = emptyList())
 
-    // 2. Lógica de cálculos (Separada de la UI)
+    // 1. SINCRONIZACIÓN: Solo se dispara UNA VEZ al entrar (usamos Unit)
+    LaunchedEffect(Unit) {
+        vm.sincronizarKardex(context)
+    }
+
+    // 2. FECHA: Esta SÍ debe reaccionar cuando cambie la lista
+    // remember(listaKardex) hace que solo se recalcule el String, no que dispare el Worker
+
+    
+// Cambia 'historial' por 'listaKardex' para que reaccione al cambio de datos
+    val ultimaSinc = remember(listaKardex) {
+        context.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
+            .getString("fecha_kardex", "Sin sincronizar") ?: "Sin sincronizar"
+    }
+    // Cálculos de promedio y créditos
     val promedio = if (listaKardex.isNotEmpty()) {
         val suma = listaKardex.sumOf { it.calificacion.toDoubleOrNull() ?: 0.0 }
         (suma / listaKardex.size).format(1)
-    } else {
-        "0.0"
-    }
+    } else { "0.0" }
 
     val totalCreditos = listaKardex.sumOf { materia ->
         val calif = materia.calificacion.toIntOrNull() ?: 0
@@ -59,10 +77,10 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // ETIQUETA DE ACTUALIZACIÓN (Requisito 2b)
+                // ETIQUETA DE ACTUALIZACIÓN DINÁMICA
                 item {
                     Text(
-                        text = "Última actualización: 22/02/2026 21:34",
+                        text = "Última actualización: $ultimaSinc",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -82,14 +100,12 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             ResumenItem("Promedio Gral", promedio)
-                            // Divisor visual vertical
                             VerticalDivider(modifier = Modifier.height(40.dp), thickness = 1.dp)
                             ResumenItem("Créditos Totales", totalCreditos.toString())
                         }
                     }
                 }
 
-                // LISTADO DE MATERIAS
                 items(listaKardex) { materia ->
                     KardexItemCard(materia)
                 }

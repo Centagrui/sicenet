@@ -7,10 +7,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue // IMPORTANTE: Soluciona error de delegado 'by'
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -19,15 +21,15 @@ import com.example.sicenet.ui.SicenetViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-
 fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // 1. Obtener datos de Room
-    val listaCarga: List<Materia> by vm.materiasCarga.collectAsState(initial = emptyList())
+    // Se usa 'by' para observar el Flow de Room como un estado de Compose
+    val materias by vm.materiasLocal.collectAsState(initial = emptyList())
+    val context = LocalContext.current
 
-    // 2. OBTENER FECHA DE SHARED PREFERENCES (Agregado aquí)
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
-    val ultimaSinc = sharedPref.getString("fecha_carga", "Sin sincronizar") ?: "Sin sincronizar"
+    // Sincronización automática al entrar (Punto 2b de la rúbrica)
+    LaunchedEffect(Unit) {
+        vm.sincronizarCarga(context)
+    }
 
     Scaffold(
         topBar = {
@@ -35,39 +37,24 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 title = { Text("Carga Académica") },
                 navigationIcon = {
                     IconButton(onClick = onOpenMenu) {
-                        Icon(imageVector = Icons.Default.Menu, contentDescription = "Menú")
+                        Icon(Icons.Default.Menu, contentDescription = "Menú")
                     }
                 }
             )
         }
     ) { padding ->
-        Column(modifier = Modifier.padding(padding)) {
-
-            // ETIQUETA DINÁMICA (Punto 2b de tu rúbrica)
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "Última actualización: $ultimaSinc", // <--- VALOR REAL
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(8.dp),
-                    textAlign = TextAlign.Center
-                )
+        if (materias.isEmpty()) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator() // Feedback visual mientras llega la red
             }
-
-            if (listaCarga.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay materias cargadas.")
-                }
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(listaCarga) { materia ->
-                        MateriaCard(materia)
-                    }
+        } else {
+            LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+                items(materias) { materia ->
+                    // Aquí diseñas tu tarjeta de materia
+                    ListItem(
+                        headlineContent = { Text(materia.nombre) },
+                        supportingContent = { Text("Grupo: ${materia.grupo}") }
+                    )
                 }
             }
         }

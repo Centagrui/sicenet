@@ -155,21 +155,17 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
             if (response.isSuccessful) response.body() else null
         } catch (e: Exception) { null }
     }
-
     override fun procesarCargaAcademica(xml: String): List<Materia> {
         val lista = mutableListOf<Materia>()
         try {
-            // Extraemos el bloque de texto que contiene el JSON
             val contenidoJson = xml.substringAfter("<getCargaAcademicaByAlumnoResult>")
                 .substringBefore("</getCargaAcademicaByAlumnoResult>")
 
-            // Definimos el patrón de búsqueda:
-            // Buscamos "Campo": "Valor", ignorando lo que haya en medio con .*?
             val patron = """
             "Docente"\s*:\s*"(.*?)".*?
             "Materia"\s*:\s*"(.*?)".*?
             "Grupo"\s*:\s*"(.*?)"
-        """.trimIndent().replace("\n", "").toRegex(RegexOption.DOT_MATCHES_ALL)
+            """.trimIndent().replace("\n", "").toRegex(RegexOption.DOT_MATCHES_ALL)
 
             val coincidencias = patron.findAll(contenidoJson)
 
@@ -181,17 +177,23 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
                 if (materia.isNotBlank()) {
                     lista.add(
                         Materia(
-                            clave = grupo,      // Usamos el grupo como clave o ID temporal
+                            clave = materia,    // <--- AGREGAMOS LA CLAVE AQUÍ (Usamos el nombre como ID)
                             nombre = materia,
                             profesor = docente,
-                            // El resto de campos los mandamos vacíos como pediste
-                            lunes = "", martes = "", miercoles = "", jueves = "", viernes = "")
+                            grupo = grupo,
+                            creditos = "",
+                            lunes = "",
+                            martes = "",
+                            miercoles = "",
+                            jueves = "",
+                            viernes = ""
+                        )
                     )
                 }
             }
             Log.d("DEBUG_SAVE", "Materias detectadas: ${lista.size}")
         } catch (e: Exception) {
-            Log.e("PARSER_ERROR", "Error: ${e.message}")
+            Log.e("PARSER_ERROR", "Error procesando carga: ${e.message}")
         }
         return lista
     }

@@ -13,5 +13,6 @@ data class Materia(
     val martes: String = "",
     val miercoles: String = "",
     val jueves: String = "",
-    val viernes: String = ""
+    val viernes: String = "",
+    val grupo: String
 )

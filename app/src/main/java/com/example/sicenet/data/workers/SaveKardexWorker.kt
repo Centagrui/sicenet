@@ -14,40 +14,40 @@ import java.util.Locale
 class SaveKardexWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
-        // 1. Recuperamos el XML del FetchKardexWorker
         val xml = inputData.getString("kardex_xml") ?: return Result.failure()
-
         val database = SicenetDatabase.getDatabase(applicationContext)
-        // Usamos el parser del repositorio de red
         val repository = SicenetRepository(RetrofitClient.apiService)
 
         return try {
-            // 2. Procesamos el XML
             val lista = repository.procesarKardex(xml)
-            Log.d("DEBUG_WORKER", "Materias extraídas del XML: ${lista.size}")
+            Log.d("DEBUG_SAVE", "Materias extraídas: ${lista.size}")
 
             if (lista.isNotEmpty()) {
-                // 3. Persistencia en Room
+                // 1. Guardar en Room
                 database.sicenetDao().limpiarKardex()
                 database.sicenetDao().insertarKardex(lista)
 
-                // 4. GUARDAR FECHA (Punto 2 de la rúbrica)
-                // Guardamos el momento exacto de la sincronización para las pantallas
-                val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                // 2. Preparar la fecha
+                val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
                 val fechaActual = sdf.format(Date())
 
+                // 3. Guardar en SharedPreferences
                 val sharedPref = applicationContext.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
-                sharedPref.edit().putString("fecha_finales", fechaActual).apply()
-                sharedPref.edit().putString("fecha_kardex", fechaActual).apply()
+                with(sharedPref.edit()) {
+                    // GUARDAMOS AMBAS PARA QUE AMBAS PANTALLAS SE ACTUALICEN
+                    putString("fecha_kardex", fechaActual)
+                    putString("fecha_finales", fechaActual)
+                    apply()
+                }
 
-                Log.d("DEBUG_WORKER", "Kárdex guardado exitosamente el: $fechaActual")
+                Log.d("DEBUG_SAVE", "¡Todo guardado! Fecha: $fechaActual")
                 Result.success()
             } else {
-                Log.e("DEBUG_WORKER", "Lista vacía: El XML no contenía registros válidos.")
+                Log.e("DEBUG_SAVE", "Lista vacía")
                 Result.failure()
             }
         } catch (e: Exception) {
-            Log.e("DEBUG_WORKER", "Error al procesar/guardar Kárdex: ${e.message}")
+            Log.e("DEBUG_SAVE", "Error: ${e.message}")
             Result.failure()
         }
     }

@@ -25,4 +25,5 @@ class SicenetLocalRepository(private val dao: SicenetDao) {
         dao.limpiarUnidades()
         dao.insertarUnidades(lista)
     }
+    val finales: Flow<List<Kardex>> = dao.obtenerFinales()
 }

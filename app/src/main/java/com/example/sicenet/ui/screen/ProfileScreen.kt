@@ -15,11 +15,19 @@ import androidx.compose.ui.unit.dp
 import com.example.sicenet.ui.SicenetViewModel
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     val scrollState = rememberScrollState()
+    val perfil by vm.perfilLocal.collectAsState(initial = null)
+    val context = LocalContext.current
+
+    // Sincronización automática al entrar (Punto 2b)
+    LaunchedEffect(Unit) {
+        vm.sincronizarPerfil(context)
+    }
 
     // CORRECCIÓN: Observamos el perfil desde Room (base de datos local)
     val alumno by vm.perfilLocal.collectAsState(initial = null)

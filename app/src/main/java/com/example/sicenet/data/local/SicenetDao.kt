@@ -42,4 +42,10 @@ interface SicenetDao {
 
     @Query("SELECT * FROM calificaciones_unidades")
     fun obtenerUnidades(): Flow<List<UnidadCalificacion>>
+
+    @Query("SELECT * FROM kardex WHERE periodo = 'Actual' OR periodo = ''")
+    fun obtenerFinales(): Flow<List<Kardex>>
+
+    @Query("DELETE FROM kardex")
+    suspend fun borrarKardex()
 }

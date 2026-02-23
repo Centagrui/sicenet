@@ -7,29 +7,40 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.sicenet.data.SicenetRepository
 import com.example.sicenet.ui.SicenetViewModel
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // 1. Datos desde Room (reutilizamos la lógica de kardex local si ahí están los finales)
-    val listaFinales by vm.kardexLocal.collectAsState(initial = emptyList())
+    val context = LocalContext.current
+    val listaFinales by vm.finalesLocal.collectAsState(initial = emptyList())
 
-    // 2. Fecha de sincronización
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
-    val ultimaSinc = sharedPref.getString("fecha_finales", "Sin sincronizar") ?: "Sin sincronizar"
-    
+    // 1. Estado para la fecha (se inicializa con lo que haya en disco)
+    var ultimaSinc by remember { mutableStateOf("Sin sincronizar") }
 
+    // Función para leer la fecha de SharedPreferences
+    fun cargarFecha() {
+        val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
+        val ultimaSinc = sharedPref.getString("fecha_finales", "Esperando datos...") ?: "Esperando datos..."    }
+
+    // 2. Sincronización automática y actualización de fecha
+    // Observamos 'listaFinales': si cambia, refrescamos la etiqueta de fecha
+    LaunchedEffect(listaFinales) {
+        vm.sincronizarFinales(context)
+        cargarFecha()
+    }
 
     Scaffold(
         topBar = {
@@ -45,7 +56,7 @@ fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
 
-            // Etiqueta de actualización (Requisito 2b)
+            // ETIQUETA DE ACTUALIZACIÓN DINÁMICA
             Surface(
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 modifier = Modifier.fillMaxWidth()
@@ -54,16 +65,22 @@ fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     text = "Última sincronización: $ultimaSinc",
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(8.dp),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }
 
             if (listaFinales.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay registros finales disponibles.")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator()
+                        Spacer(Modifier.height(8.dp))
+                        Text("Buscando calificaciones...")
+                    }
                 }
             } else {
                 LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
@@ -98,6 +115,7 @@ fun FinalItemCard(materia: String, calificacion: String) {
                 fontWeight = FontWeight.Medium
             )
 
+            // Lógica de colores: Verde para aprobado (>=70), Rojo para reprobado
             val nota = calificacion.toIntOrNull() ?: 0
             val colorTexto = if (nota >= 70)
                 MaterialTheme.colorScheme.primary
