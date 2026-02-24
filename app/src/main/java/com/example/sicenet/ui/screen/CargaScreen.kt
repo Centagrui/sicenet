@@ -125,7 +125,6 @@ fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
                 //   )
             }
 
-
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
