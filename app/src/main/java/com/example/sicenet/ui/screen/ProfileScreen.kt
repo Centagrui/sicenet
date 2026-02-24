@@ -129,6 +129,7 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     }
 }
 
+
 @Composable
 fun DatoItem(label: String, valor: String, colorLabel: Color) {
     Column(modifier = Modifier.fillMaxWidth()) {

@@ -31,6 +31,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     val context = LocalContext.current
 
     // Paleta de colores Café
+
     val cafeProfundo = Color(0xFF3E2723)
     val cafeMedio = Color(0xFF5D4037)
     val cremaFondo = Color(0xFFF5F5F5)
