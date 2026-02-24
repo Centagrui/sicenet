@@ -34,6 +34,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
 
 
+
     val cafeProfundo = Color(0xFF3E2723)
     val cafeMedio = Color(0xFF5D4037)
     val cremaFondo = Color(0xFFF5F5F5)
