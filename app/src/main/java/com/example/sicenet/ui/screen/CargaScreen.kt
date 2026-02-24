@@ -12,6 +12,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,6 +22,12 @@ import com.example.sicenet.ui.SicenetViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
+    // Definición de la gama de cafés
+    val cafeProfundo = Color(0xFF3E2723)
+    val cafeMedio = Color(0xFF5D4037)
+    val cafeClaro = Color(0xFFD7CCC8)
+    val cremaFondo = Color(0xFFEFEBE9)
+
     // Observamos los datos de la base de datos local
     val materias by vm.materiasLocal.collectAsState(initial = emptyList())
     val context = LocalContext.current
@@ -33,15 +40,15 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mi Carga Académica") },
+                title = { Text("Mi Carga Académica", color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onOpenMenu) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú Principal")
+                        Icon(Icons.Default.Menu, contentDescription = "Menú Principal", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = cafeProfundo, // Cambio a café profundo
+                    titleContentColor = Color.White
                 )
             )
         }
@@ -55,9 +62,9 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = cafeProfundo)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Cargando materias...", style = MaterialTheme.typography.bodyMedium)
+                    Text("Cargando materias...", style = MaterialTheme.typography.bodyMedium, color = cafeMedio)
                 }
             }
         } else {
@@ -71,7 +78,7 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
             ) {
                 items(materias) { materia ->
                     // Llamamos a la función visual que definiste abajo
-                    MateriaCard(materia = materia)
+                    MateriaCard(materia = materia, colorPrimario = cafeProfundo, colorFondo = cremaFondo)
                 }
             }
         }
@@ -79,12 +86,12 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 }
 
 @Composable
-fun MateriaCard(materia: Materia) {
+fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = colorFondo // Cambio a crema suave
         )
     ) {
         Column(
@@ -96,10 +103,10 @@ fun MateriaCard(materia: Materia) {
                 text = materia.nombre,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+                color = colorPrimario // Cambio a café profundo
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = colorPrimario.copy(alpha = 0.2f))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -107,14 +114,15 @@ fun MateriaCard(materia: Materia) {
             ) {
                 Text(
                     text = "Grupo: ${materia.grupo}",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Black
                 )
                 //Text(
                 //
                 //    text = "Créditos: ${materia.creditos}",
-                   // style = MaterialTheme.typography.labelLarge,
-                   // fontWeight = FontWeight.SemiBold
-             //   )
+                // style = MaterialTheme.typography.labelLarge,
+                // fontWeight = FontWeight.SemiBold
+                //   )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -122,7 +130,8 @@ fun MateriaCard(materia: Materia) {
             Text(
                 text = "Profesor: ${materia.profesor}",
                 style = MaterialTheme.typography.bodyMedium,
-                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                color = Color.DarkGray
             )
         }
     }

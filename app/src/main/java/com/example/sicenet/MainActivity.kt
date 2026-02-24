@@ -1,5 +1,6 @@
 package com.example.sicenet
 
+
 import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
