@@ -56,7 +56,6 @@ fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
 
-
             // ETIQUETA DE ACTUALIZACIÓN DINÁMICA
             Surface(
                 color = MaterialTheme.colorScheme.tertiaryContainer,
