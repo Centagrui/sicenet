@@ -1,9 +1,12 @@
 package com.example.sicenet.ui.screen
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
@@ -13,37 +16,28 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.sicenet.ui.SicenetViewModel
 
-
-
-@Composable
-fun UnidadRow(materia: String, unidad: String, calif: String, faltas: String) {
-    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-        if (materia.isNotEmpty()) {
-            Text(materia, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(unidad, modifier = Modifier.weight(2f))
-            Text(calif, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-            Text(faltas, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-        }
-    }
-}@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     val listaUnidades by vm.unidadesLocal.collectAsState(initial = emptyList())
     val context = LocalContext.current
 
-    // Recuperar fecha de actualización de SharedPreferences
+    // Paleta de colores Café
+    val cafeProfundo = Color(0xFF3E2723)
+    val cafeMedio = Color(0xFF5D4037)
+    val cremaFondo = Color(0xFFF5F5F5)
+
     val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
     val ultimaSinc = sharedPref.getString("fecha_unidades", "Sin sincronizar") ?: "Sin sincronizar"
 
-    // Sincronización automática al entrar (Punto 2b de la rúbrica)
     LaunchedEffect(Unit) {
         vm.sincronizarUnidades(context)
     }
@@ -51,7 +45,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Calificaciones por Unidad") },
+                title = { Text("Calificaciones por Unidad", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onOpenMenu) {
                         Icon(Icons.Default.Menu, contentDescription = "Menú")
@@ -61,15 +55,12 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-
-            // ETIQUETA DE FECHA (Requisito de la rúbrica)
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            // Etiqueta de sincronización
+            Surface(color = cafeProfundo, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Última sincronización: $ultimaSinc",
                     style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
                     modifier = Modifier.padding(8.dp),
                     textAlign = TextAlign.Center
                 )
@@ -77,39 +68,83 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
             if (listaUnidades.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Cargando unidades...")
+                    CircularProgressIndicator(color = cafeProfundo)
                 }
             } else {
+                // Agrupamos las unidades por nombre de materia para armar las tablas
+                val materiasUnicas = listaUnidades.map { it.materia }.distinct()
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentPadding = PaddingValues(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Cabecera de la tabla
-                    item {
-                        Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Unidad", fontWeight = FontWeight.Bold, modifier = Modifier.weight(2f))
-                            Text("Calif.", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                            Text("Faltas", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-                        }
-                        HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    }
+                    items(materiasUnicas) { nombreMateria ->
+                        val unidadesDeEstaMateria = listaUnidades.filter { it.materia == nombreMateria }
 
-                    items(listaUnidades) { unidad ->
+                        // Tabla visual estilo Café
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, cafeMedio.copy(alpha = 0.3f)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(4.dp)
                         ) {
-                            // Usamos tu componente UnidadRow aquí
-                            UnidadRow(
-                                materia = unidad.materia,
-                                unidad = "Unidad ${unidad.unidad}",
-                                calif = unidad.calificacion,
-                                faltas = "0" // O el campo faltas si lo agregas al modelo
-                            )
+                            Column {
+                                // ENCABEZADO: Nombre de la materia
+                                Box(modifier = Modifier.fillMaxWidth().background(cafeProfundo).padding(8.dp)) {
+                                    Text(
+                                        text = nombreMateria.uppercase(),
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
+                                // FILA DE TITULOS: U1 a U9
+                                Row(modifier = Modifier.fillMaxWidth().background(cremaFondo)) {
+                                    Box(modifier = Modifier.weight(2f).border(0.5.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
+                                        Text("Unidades", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    for (i in 1..9) {
+                                        Box(modifier = Modifier.weight(1f).border(0.5.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
+                                            Text("U$i", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+
+                                // FILA DE DATOS: Calif / Faltas
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    // Etiqueta lateral
+                                    Box(modifier = Modifier.weight(2f).border(0.5.dp, Color.LightGray).padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Text("Calif.", fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            Text("Faltas", fontSize = 8.sp, color = Color.Gray)
+                                        }
+                                    }
+
+                                    // Celdas U1 a U9
+                                    for (i in 1..9) {
+                                        // Buscamos si existe la unidad i en la lista
+                                        val uActual = unidadesDeEstaMateria.find { it.unidad == i.toString() || it.unidad == "$i" }
+                                        val calif = uActual?.calificacion ?: "-"
+
+                                        Box(modifier = Modifier.weight(1f).border(0.5.dp, Color.LightGray).padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
+                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                Text(
+                                                    text = calif,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (calif != "-" && (calif.toIntOrNull() ?: 0) < 70) Color.Red else Color.Black
+                                                )
+                                                Text("0", fontSize = 8.sp, color = Color.Gray)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -9,12 +9,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue // IMPORTANTE: Soluciona error de delegado 'by'
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.sicenet.model.Materia
 import com.example.sicenet.ui.SicenetViewModel
@@ -22,11 +21,11 @@ import com.example.sicenet.ui.SicenetViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // Se usa 'by' para observar el Flow de Room como un estado de Compose
+    // Observamos los datos de la base de datos local
     val materias by vm.materiasLocal.collectAsState(initial = emptyList())
     val context = LocalContext.current
 
-    // Sincronización automática al entrar (Punto 2b de la rúbrica)
+    // Sincronización automática con el servidor al cargar la pantalla
     LaunchedEffect(Unit) {
         vm.sincronizarCarga(context)
     }
@@ -34,54 +33,96 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Carga Académica") },
+                title = { Text("Mi Carga Académica") },
                 navigationIcon = {
                     IconButton(onClick = onOpenMenu) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menú")
+                        Icon(Icons.Default.Menu, contentDescription = "Menú Principal")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             )
         }
     ) { padding ->
         if (materias.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator() // Feedback visual mientras llega la red
+            // Pantalla de carga mientras se obtienen los datos
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Cargando materias...", style = MaterialTheme.typography.bodyMedium)
+                }
             }
         } else {
-            LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+            // Lista visual de las materias
+            LazyColumn(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(16.dp), // Margen alrededor de toda la lista
+                verticalArrangement = Arrangement.spacedBy(12.dp) // Espacio entre cada tarjeta
+            ) {
                 items(materias) { materia ->
-                    // Aquí diseñas tu tarjeta de materia
-                    ListItem(
-                        headlineContent = { Text(materia.nombre) },
-                        supportingContent = { Text("Grupo: ${materia.grupo}") }
-                    )
+                    // Llamamos a la función visual que definiste abajo
+                    MateriaCard(materia = materia)
                 }
             }
         }
     }
 }
 
-
 @Composable
 fun MateriaCard(materia: Materia) {
-
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth()
+        ) {
             Text(
-                text = materia.nombre, // CAMBIO: Usamos .nombre (antes nombreMateria)
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                text = materia.nombre,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Grupo: ${materia.grupo}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                //Text(
+                //
+                //    text = "Créditos: ${materia.creditos}",
+                   // style = MaterialTheme.typography.labelLarge,
+                   // fontWeight = FontWeight.SemiBold
+             //   )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text(
-                text = "Créditos: ${materia.creditos}", // CAMBIO: Usamos .creditos
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = "Prof: ${materia.profesor}",
-                style = MaterialTheme.typography.bodyMedium
+                text = "Profesor: ${materia.profesor}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
             )
         }
     }
