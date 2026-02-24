@@ -173,4 +173,5 @@ fun ResumenItem(label: String, valor: String) {
     }
 }
 
+
 fun Double.format(digits: Int) = "%.${digits}f".format(Locale.US, this)

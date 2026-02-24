@@ -42,6 +42,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
         vm.sincronizarUnidades(context)
     }
 
+
     Scaffold(
         topBar = {
             TopAppBar(
