@@ -32,9 +32,8 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     // Colores Café consistentes
     val cafeProfundo = Color(0xFF3E2723)
     val cafeClaro = Color(0xFFD7CCC8)
-
     LaunchedEffect(Unit) {
-        vm.sincronizarPerfil(context)
+        vm.sincronizarDato("PERFIL") // Usamos la nueva función unificada
     }
 
     Scaffold(

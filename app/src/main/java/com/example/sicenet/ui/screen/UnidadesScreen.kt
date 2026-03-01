@@ -41,7 +41,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     val ultimaSinc = sharedPref.getString("fecha_unidades", "Sin sincronizar") ?: "Sin sincronizar"
 
     LaunchedEffect(Unit) {
-        vm.sincronizarUnidades(context)
+        vm.sincronizarDato("UNIDADES") // Usamos la nueva función unificada
     }
 
     Scaffold(

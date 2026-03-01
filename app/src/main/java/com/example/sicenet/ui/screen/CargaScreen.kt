@@ -34,7 +34,7 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
     // Sincronización automática con el servidor al cargar la pantalla
     LaunchedEffect(Unit) {
-        vm.sincronizarCarga(context)
+        vm.sincronizarDato("CARGA") // Usamos la nueva función unificada
     }
 
     Scaffold(

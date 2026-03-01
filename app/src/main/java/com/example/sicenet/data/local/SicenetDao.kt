@@ -55,4 +55,6 @@ interface SicenetDao {
     // Agrega esto a SicenetDao.kt
     @Query("SELECT * FROM carga_academica")
     suspend fun obtenerCargaDirecta(): List<Materia>
+    @Query("DELETE FROM perfil_alumno")
+    suspend fun limpiarPerfil()
 }

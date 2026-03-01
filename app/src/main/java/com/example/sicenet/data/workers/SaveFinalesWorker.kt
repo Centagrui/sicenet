@@ -26,7 +26,6 @@ class SaveFinalesWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
             val database = SicenetDatabase.getDatabase(applicationContext)
             val dao = database.sicenetDao()
 
-            // 1. Obtenemos las materias de la Carga Académica (que ya están en Room)
             // Usamos first() para obtener la lista actual del Flow
             val materiasCarga = dao.obtenerCargaDirecta()
 

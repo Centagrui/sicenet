@@ -24,4 +24,11 @@ class SicenetLocalRepository(private val dao: SicenetDao) {
         dao.limpiarUnidades()
         dao.insertarUnidades(lista)
     }
+    suspend fun limpiarTodo() {
+        dao.limpiarPerfil()
+        dao.limpiarCarga()
+        dao.limpiarKardex()
+        dao.limpiarUnidades()
+        dao.limpiarFinales()
+    }
 }

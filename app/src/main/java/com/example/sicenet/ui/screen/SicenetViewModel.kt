@@ -6,13 +6,11 @@ import android.util.Log
 import androidx.compose.runtime.*
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.sicenet.data.ISicenetRepository
-import com.example.sicenet.model.AlumnoPerfil
-import com.example.sicenet.data.local.SicenetDatabase
-import com.example.sicenet.data.workers.*
 import androidx.work.*
+import com.example.sicenet.data.ISicenetRepository
 import com.example.sicenet.data.SicenetLocalRepository
-import kotlinx.coroutines.flow.combine
+import com.example.sicenet.data.workers.*
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class SicenetViewModel(
@@ -20,6 +18,11 @@ class SicenetViewModel(
     private val localRepository: SicenetLocalRepository,
     application: Application
 ) : AndroidViewModel(application) {
+
+    // En SicenetViewModel.kt
+    val estaOnline = mutableStateOf(true) // Actualizar esto con un NetworkCallback
+    // 1. Instancia global de WorkManager para esta clase
+    private val workManager = WorkManager.getInstance(application)
 
     // --- ESTADO DE LOGIN ---
     var matricula by mutableStateOf("")
@@ -29,7 +32,7 @@ class SicenetViewModel(
 
     // --- ACCESO A DATOS LOCALES (ROOM) ---
     val perfilLocal = localRepository.perfil
-    val materiasLocal = localRepository.cargaAcademica // Se usa para CargaScreen
+    val materiasLocal = localRepository.cargaAcademica
     val kardexLocal = localRepository.kardex
     val unidadesLocal = localRepository.unidades
     val finalesLocal = localRepository.finales
@@ -42,7 +45,7 @@ class SicenetViewModel(
         }
     }
 
-    // --- FUNCIONES DE SESIÓN Y SINCRONIZACIÓN ---
+    // --- FUNCIONES DE SESIÓN ---
 
     fun iniciarSesion(context: Context, alEntrar: () -> Unit) {
         if (estaCargando) return
@@ -52,8 +55,7 @@ class SicenetViewModel(
             try {
                 val exito = repository.login(matricula, password)
                 if (exito) {
-                    // Sincronización inicial básica
-                    sincronizarPerfil(context)
+                    sincronizarDato("PERFIL") // Sincronización inicial
                     estaCargando = false
                     alEntrar()
                     password = ""
@@ -68,70 +70,53 @@ class SicenetViewModel(
         }
     }
 
-    // --- MÉTODOS DE SINCRONIZACIÓN (PUNTO 2B) ---
+    // --- MÉTODO DE SINCRONIZACIÓN UNIFICADO (CORREGIDO) ---
 
-    fun sincronizarPerfil(context: Context) {
-        val workManager = WorkManager.getInstance(context)
-        val fetch = OneTimeWorkRequestBuilder<FetchProfileWorker>().build()
-        val save = OneTimeWorkRequestBuilder<SaveProfileWorker>().build()
-        workManager.beginUniqueWork("sync_perfil", ExistingWorkPolicy.REPLACE, fetch)
-            .then(save).enqueue()
+    fun sincronizarDato(tipo: String) {
+        val restricciones = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        // Determinamos qué Workers usar según el tipo
+        val (fetchClass, saveClass, uniqueName) = when(tipo) {
+            "PERFIL" -> Triple(FetchProfileWorker::class.java, SaveProfileWorker::class.java, "sync_perfil")
+            "CARGA" -> Triple(FetchCargaWorker::class.java, SaveCargaWorker::class.java, "sync_carga")
+            "KARDEX" -> Triple(FetchKardexWorker::class.java, SaveKardexWorker::class.java, "sync_kardex")
+            "UNIDADES" -> Triple(FetchUnidadesWorker::class.java, SaveUnidadesWorker::class.java, "sync_unidades")
+            "FINALES" -> Triple(FetchFinalesWorker::class.java, SaveFinalesWorker::class.java, "sync_finales")
+            else -> return
+        }
+
+        // Creamos las peticiones de trabajo con las clases específicas
+        val requestFetch = OneTimeWorkRequest.Builder(fetchClass)
+            .setConstraints(restricciones)
+            .build()
+
+        val requestSave = OneTimeWorkRequest.Builder(saveClass)
+            .build()
+
+        // Encadenamos y encolamos
+        workManager.beginUniqueWork(uniqueName, ExistingWorkPolicy.REPLACE, requestFetch)
+            .then(requestSave)
+            .enqueue()
     }
+    // Dentro de SicenetViewModel.kt
 
-    fun sincronizarCarga(context: Context) {
-        val workManager = WorkManager.getInstance(context)
-        val fetch = OneTimeWorkRequestBuilder<FetchCargaWorker>().build()
-        val save = OneTimeWorkRequestBuilder<SaveCargaWorker>().build()
-        workManager.beginUniqueWork("sync_carga", ExistingWorkPolicy.REPLACE, fetch)
-            .then(save).enqueue()
-    }
-
-    fun sincronizarKardex(context: Context) {
-        val workManager = WorkManager.getInstance(context)
-        val fetch = OneTimeWorkRequestBuilder<FetchKardexWorker>().build()
-        val save = OneTimeWorkRequestBuilder<SaveKardexWorker>().build()
-        workManager.beginUniqueWork("sync_kardex", ExistingWorkPolicy.REPLACE, fetch)
-            .then(save).enqueue()
-    }
-
-    fun sincronizarFinales(context: Context) {
-        val workManager = WorkManager.getInstance(context)
-        val fetch = OneTimeWorkRequestBuilder<FetchFinalesWorker>().build()
-        val save = OneTimeWorkRequestBuilder<SaveFinalesWorker>().build()
-        workManager.beginUniqueWork("sync_finales", ExistingWorkPolicy.REPLACE, fetch)
-            .then(save).enqueue()
-    }
-
-    fun sincronizarUnidades(context: Context) {
-        val workManager = WorkManager.getInstance(context)
-        val fetch = OneTimeWorkRequestBuilder<FetchUnidadesWorker>().build()
-        val save = OneTimeWorkRequestBuilder<SaveUnidadesWorker>().build()
-        workManager.beginUniqueWork("sync_unidades", ExistingWorkPolicy.REPLACE, fetch)
-            .then(save).enqueue()
-    }
-    class SicenetViewModel(application: Application) : AndroidViewModel(application) {
-        private val workManager = WorkManager.getInstance(application)
-
-        // Función genérica para encadenar Fetch + Save (Punto 2b)
-        fun sincronizarDato(tipo: String) {
-            val (fetchWorker, saveWorker, uniqueName) = when(tipo) {
-                "CARGA" -> Triple(FetchCargaWorker::class.java, SaveCargaWorker::class.java, "sync_carga")
-                "KARDEX" -> Triple(FetchKardexWorker::class.java, SaveKardexWorker::class.java, "sync_kardex")
-                "UNIDADES" -> Triple(FetchUnidadesWorker::class.java, SaveUnidadesWorker::class.java, "sync_unidades")
-                "FINALES" -> Triple(FetchFinalesWorker::class.java, SaveFinalesWorker::class.java, "sync_finales")
-                else -> return
-            }
-
-            val requestFetch = OneTimeWorkRequestBuilder<CoroutineWorker>() // Usa la clase correspondiente
-                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-                .build()
-
-            val requestSave = OneTimeWorkRequestBuilder<CoroutineWorker>()
-                .build()
-
-            workManager.beginUniqueWork(uniqueName, ExistingWorkPolicy.REPLACE, requestFetch)
-                .then(requestSave)
-                .enqueue()
+    // Función para verificar si hay una sesión activa en Room
+    // Borra cualquier otra que se llame igual y deja solo esta:
+    fun verificarSesion(onResultado: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            // Importa: kotlinx.coroutines.flow.firstOrNull
+            val perfil = localRepository.perfil.firstOrNull()
+            onResultado(perfil != null)
         }
     }
+
+    fun cerrarSesion() {
+        viewModelScope.launch {
+            // Ejecutar todas las limpiezas del DAO
+            localRepository.limpiarTodo()
+        }
+    }
+
 }

@@ -33,7 +33,7 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
     // Sincronización automática al entrar
     LaunchedEffect(Unit) {
-        vm.sincronizarKardex(context)
+        vm.sincronizarDato("KARDEX") // Usamos la nueva función unificada
     }
 
     // LÓGICA IGUAL A UNIDADES: Recuperar fecha directamente

@@ -29,7 +29,7 @@ fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
     // Sincronización automática al entrar
     LaunchedEffect(Unit) {
-        vm.sincronizarFinales(context)
+        vm.sincronizarDato("FINALES") // Usamos la nueva función unificada
     }
 
     // LÓGICA IGUAL A UNIDADES: Recuperar fecha directamente
