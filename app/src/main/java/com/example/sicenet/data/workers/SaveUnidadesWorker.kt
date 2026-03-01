@@ -24,7 +24,7 @@ class SaveUnidadesWorker(ctx: Context, params: WorkerParameters) : CoroutineWork
 
             if (listaUnidades.isNotEmpty()) {
                 // 2. Guardar en la DB Local (Repository Local indirecto vía DAO)
-                database.sicenetDao().limpiarUnidades()
+                database.sicenetDao().limpiarUnidades() // <-- PASO VITAL
                 database.sicenetDao().insertarUnidades(listaUnidades)
 
                 // 3. Guardar fecha de actualización (Requisito 2b de la rúbrica)

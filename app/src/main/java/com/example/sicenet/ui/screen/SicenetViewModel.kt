@@ -12,6 +12,7 @@ import com.example.sicenet.data.local.SicenetDatabase
 import com.example.sicenet.data.workers.*
 import androidx.work.*
 import com.example.sicenet.data.SicenetLocalRepository
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 class SicenetViewModel(

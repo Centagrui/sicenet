@@ -2,6 +2,7 @@ package com.example.sicenet.data
 
 import android.util.Log
 import com.example.sicenet.model.AlumnoPerfil
+import com.example.sicenet.model.CalificacionFinal
 import com.example.sicenet.model.Materia
 import com.example.sicenet.model.Kardex
 import com.example.sicenet.model.UnidadCalificacion
@@ -265,28 +266,29 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
     }
 
     // --- PROCESAR CALIFICACIONES FINALES (Para FinalesScreen) ---
-    override fun procesarCalificacionesFinales(xml: String): List<Kardex> {
-        val lista = mutableListOf<Kardex>()
+    // En SicenetRepository.kt
+    override fun procesarCalificacionesFinales(xml: String): List<CalificacionFinal> { // <- CAMBIAR A CalificacionFinal
+        val lista = mutableListOf<CalificacionFinal>() // <- CAMBIAR A CalificacionFinal
         try {
             val contenidoJson = xml.substringAfter("<getAllCalifFinalByAlumnosResult>")
                 .substringBefore("</getAllCalifFinalByAlumnosResult>")
 
-            // Regex tolerante a números o letras (ej. "NA") en la calificación
-            val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"calif\"\s*:\s*\"?([a-zA-Z0-9]+)\"?""".toRegex(RegexOption.IGNORE_CASE)
-
+            val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"calif\"\s*:\s*\"?(.*?)\"""".toRegex(RegexOption.IGNORE_CASE)
             val coincidencias = patron.findAll(contenidoJson)
 
             coincidencias.forEach { match ->
-                lista.add(Kardex(
-                    materia = match.groupValues[1].trim(),
-                    calificacion = match.groupValues[2].trim(),
-                    creditos = "0",
-                    periodo = "Actual"
+                val nombreMateria = match.groupValues[1].trim()
+                var calif = match.groupValues[2].trim()
+
+                if (calif.isEmpty() || calif == "null") calif = "S/N"
+
+                lista.add(CalificacionFinal(
+                    materia = nombreMateria,
+                    calificacion = calif
                 ))
             }
-            Log.d("DEBUG_FINALES", "Calificaciones finales procesadas: ${lista.size}")
         } catch (e: Exception) {
-            Log.e("PARSER_ERROR_FINALES", "Error en Finales: ${e.message}")
+            Log.e("PARSER_ERROR", "Error en finales: ${e.message}")
         }
         return lista
     }

@@ -10,6 +10,7 @@ import com.example.sicenet.data.SicenetRepository
 class FetchUnidadesWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
         return try {
+
             val repository = SicenetRepository(RetrofitClient.apiService)
 
             // Llamamos al método que consulta el SOAP (asegúrate de tenerlo en tu Repo)

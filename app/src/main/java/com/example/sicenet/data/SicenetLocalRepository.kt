@@ -10,8 +10,7 @@ class SicenetLocalRepository(private val dao: SicenetDao) {
     val cargaAcademica: Flow<List<Materia>> = dao.obtenerCarga()
     val kardex: Flow<List<Kardex>> = dao.obtenerKardex()
     val unidades: Flow<List<UnidadCalificacion>> = dao.obtenerUnidades()
-    val finales: Flow<List<Kardex>> = dao.obtenerFinales()
-
+    val finales: Flow<List<CalificacionFinal>> = dao.obtenerFinales()
     suspend fun guardarPerfil(perfil: AlumnoPerfil) = dao.insertarPerfil(perfil)
 
     suspend fun guardarCarga(materias: List<Materia>) {

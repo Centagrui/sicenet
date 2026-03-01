@@ -21,7 +21,7 @@ interface SicenetDao {
     suspend fun limpiarCarga()
 
     @Query("SELECT * FROM carga_academica")
-    fun obtenerCarga(): Flow<List<Materia>> // MANTENER SOLO ESTA
+    fun obtenerCarga(): Flow<List<Materia>>
 
     // --- KÁRDEX ---
     @Query("SELECT * FROM kardex")
@@ -33,19 +33,26 @@ interface SicenetDao {
     @Query("DELETE FROM kardex")
     suspend fun limpiarKardex()
 
-    // Dentro de SicenetDao.kt
+    // --- UNIDADES (PARCIALES) ---
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarUnidades(unidades: List<UnidadCalificacion>)
 
     @Query("DELETE FROM calificaciones_unidades")
-    suspend fun limpiarUnidades()
+    suspend fun limpiarUnidades() // Aquí estaba el duplicado, ya solo queda una vez.
 
     @Query("SELECT * FROM calificaciones_unidades")
     fun obtenerUnidades(): Flow<List<UnidadCalificacion>>
 
-    @Query("SELECT * FROM kardex WHERE periodo = 'Actual' OR periodo = ''")
-    fun obtenerFinales(): Flow<List<Kardex>>
+    // --- CALIFICACIONES FINALES ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertarFinales(finales: List<CalificacionFinal>)
 
-    @Query("DELETE FROM kardex")
-    suspend fun borrarKardex()
+    @Query("DELETE FROM calificaciones_finales")
+    suspend fun limpiarFinales()
+
+    @Query("SELECT * FROM calificaciones_finales")
+    fun obtenerFinales(): Flow<List<CalificacionFinal>>
+    // Agrega esto a SicenetDao.kt
+    @Query("SELECT * FROM carga_academica")
+    suspend fun obtenerCargaDirecta(): List<Materia>
 }

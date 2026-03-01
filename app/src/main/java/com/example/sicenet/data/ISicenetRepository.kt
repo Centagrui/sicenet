@@ -4,7 +4,7 @@ import com.example.sicenet.model.AlumnoPerfil
 import com.example.sicenet.model.Kardex
 import com.example.sicenet.model.Materia
 import com.example.sicenet.model.UnidadCalificacion
-
+import com.example.sicenet.model.CalificacionFinal
 interface ISicenetRepository {
     suspend fun login(matricula: String, contrasenia: String): Boolean
     suspend fun recuperarPerfil(): String?
@@ -20,5 +20,7 @@ interface ISicenetRepository {
     fun procesarCargaAcademica(xml: String): List<Materia>
     fun procesarKardex(xml: String): List<Kardex>
     fun procesarUnidades(xml: String): List<UnidadCalificacion>
-    fun procesarCalificacionesFinales(xml: String): List<Kardex>
+
+    //  fun procesarCalificacionesFinales(xml: String): List<Kardex>
+    fun procesarCalificacionesFinales(xml: String): List<CalificacionFinal>
 }

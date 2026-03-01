@@ -72,8 +72,11 @@ fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(listaFinales) { materia ->
-                        KardexItemCard(materia)
+                    items(listaFinales) { item ->
+                        FinalItemCard(
+                            materia = item.materia,
+                            calificacion = item.calificacion
+                        )
                     }
                 }
             }
