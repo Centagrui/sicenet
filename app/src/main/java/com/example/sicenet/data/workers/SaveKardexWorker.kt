@@ -7,47 +7,46 @@ import androidx.work.WorkerParameters
 import com.example.sicenet.data.RetrofitClient
 import com.example.sicenet.data.SicenetRepository
 import com.example.sicenet.data.local.SicenetDatabase
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.io.File
 
 class SaveKardexWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
-
     override suspend fun doWork(): Result {
-        val xml = inputData.getString("kardex_xml") ?: return Result.failure()
-        val database = SicenetDatabase.getDatabase(applicationContext)
-        val repository = SicenetRepository(RetrofitClient.apiService)
-
         return try {
-            val lista = repository.procesarKardex(xml)
-            Log.d("DEBUG_SAVE", "Materias extraídas: ${lista.size}")
+            // 1. Recibimos la ruta del archivo
+            val filePath = inputData.getString("kardex_file_path") ?: return Result.failure()
+            val file = File(filePath)
 
-            if (lista.isNotEmpty()) {
-                // 1. Guardar en Room
-                database.sicenetDao().limpiarKardex()
-                database.sicenetDao().insertarKardex(lista)
-
-                // 2. Preparar la fecha
-                val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
-                val fechaActual = sdf.format(Date())
-
-                // 3. Guardar en SharedPreferences
-                val sharedPref = applicationContext.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
-                with(sharedPref.edit()) {
-                    // GUARDAMOS AMBAS PARA QUE AMBAS PANTALLAS SE ACTUALICEN
-                    putString("fecha_kardex", fechaActual)
-                    putString("fecha_finales", fechaActual)
-                    apply()
-                }
-
-                Log.d("DEBUG_SAVE", "¡Todo guardado! Fecha: $fechaActual")
-                Result.success()
-            } else {
-                Log.e("DEBUG_SAVE", "Lista vacía")
-                Result.failure()
+            // Verificamos que el archivo realmente exista
+            if (!file.exists()) {
+                Log.e("DEBUG_SAVE", "El archivo temporal no existe")
+                return Result.failure()
             }
+
+            // 2. Leemos todo el XML gigante desde el archivo
+            val xml = file.readText()
+
+            // 3. Procesamos y guardamos en Room
+            val repository = SicenetRepository(RetrofitClient.apiService)
+            val baseDatos = SicenetDatabase.getDatabase(applicationContext)
+
+            val materiasProcesadas = repository.procesarKardex(xml)
+
+            if (materiasProcesadas.isNotEmpty()) {
+                baseDatos.sicenetDao().limpiarKardex()
+                baseDatos.sicenetDao().insertarKardex(materiasProcesadas)
+                Log.d("DEBUG_SAVE", "Kardex guardado en Room exitosamente")
+
+                // Guardar la fecha de actualización
+                val sharedPref = applicationContext.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
+                sharedPref.edit().putString("fecha_kardex", java.util.Date().toString()).apply()
+            }
+
+            // 4. Limpieza: Borramos el archivo para no saturar la memoria del teléfono
+            file.delete()
+
+            Result.success()
         } catch (e: Exception) {
-            Log.e("DEBUG_SAVE", "Error: ${e.message}")
+            Log.e("DEBUG_SAVE", "Error en SaveKardexWorker: ${e.message}")
             Result.failure()
         }
     }

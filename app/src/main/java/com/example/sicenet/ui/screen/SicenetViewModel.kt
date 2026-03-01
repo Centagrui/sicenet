@@ -108,4 +108,29 @@ class SicenetViewModel(
         workManager.beginUniqueWork("sync_unidades", ExistingWorkPolicy.REPLACE, fetch)
             .then(save).enqueue()
     }
+    class SicenetViewModel(application: Application) : AndroidViewModel(application) {
+        private val workManager = WorkManager.getInstance(application)
+
+        // Función genérica para encadenar Fetch + Save (Punto 2b)
+        fun sincronizarDato(tipo: String) {
+            val (fetchWorker, saveWorker, uniqueName) = when(tipo) {
+                "CARGA" -> Triple(FetchCargaWorker::class.java, SaveCargaWorker::class.java, "sync_carga")
+                "KARDEX" -> Triple(FetchKardexWorker::class.java, SaveKardexWorker::class.java, "sync_kardex")
+                "UNIDADES" -> Triple(FetchUnidadesWorker::class.java, SaveUnidadesWorker::class.java, "sync_unidades")
+                "FINALES" -> Triple(FetchFinalesWorker::class.java, SaveFinalesWorker::class.java, "sync_finales")
+                else -> return
+            }
+
+            val requestFetch = OneTimeWorkRequestBuilder<CoroutineWorker>() // Usa la clase correspondiente
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .build()
+
+            val requestSave = OneTimeWorkRequestBuilder<CoroutineWorker>()
+                .build()
+
+            workManager.beginUniqueWork(uniqueName, ExistingWorkPolicy.REPLACE, requestFetch)
+                .then(requestSave)
+                .enqueue()
+        }
+    }
 }

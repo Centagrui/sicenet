@@ -8,50 +8,41 @@ import com.example.sicenet.data.RetrofitClient
 import com.example.sicenet.data.SicenetRepository
 import com.example.sicenet.data.local.SicenetDatabase
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
-class SaveFinalesWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+class SaveFinalesWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
-        // 1. Obtener el XML del paso anterior
-        val xml = inputData.getString("xml_finales")
+        // 1. Recuperar el XML del Worker anterior (FetchFinalesWorker)
+        val xml = inputData.getString("xml_finales") ?: return Result.failure()
 
-        if (xml == null) {
-            Log.e("DEBUG_LOGCAT", "ERROR: No se recibió el XML (xml_finales es null)")
-            return Result.failure()
-        }
+        val database = SicenetDatabase.getDatabase(applicationContext)
+        val repository = SicenetRepository(RetrofitClient.apiService)
 
         return try {
-            val db = SicenetDatabase.getDatabase(applicationContext)
-            val repository = SicenetRepository(RetrofitClient.apiService)
-
             // 2. Procesar el XML
-            // NOTA: Asegúrate que procesarKardex funcione con el XML de finales
-            val listaFinales = repository.procesarKardex(xml)
-
-            Log.d("DEBUG_LOGCAT", "XML Recibido (primeros 100 caracteres): ${xml.take(100)}")
-            Log.d("DEBUG_LOGCAT", "Cantidad de materias detectadas: ${listaFinales.size}")
+            val listaFinales = repository.procesarCalificacionesFinales(xml)
 
             if (listaFinales.isNotEmpty()) {
-                // 3. Guardar en Base de Datos (Esto activa el Flow en la UI)
-                // Usamos limpiarKardex e insertarKardex porque usas el modelo Kardex para las finales
-                db.sicenetDao().limpiarKardex()
-                db.sicenetDao().insertarKardex(listaFinales)
+                // 3. Persistencia en Room
+                // Nota: Asegúrate de tener una tabla específica para Finales o usa la de Kardex si así lo diseñaste
+                database.sicenetDao().limpiarKardex()
+                database.sicenetDao().insertarKardex(listaFinales)
 
-                // 4. Guardar la fecha de éxito
-                val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
+                // 4. Guardar fecha de actualización (Mismo formato que Unidades)
+                val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
                 val fechaActual = sdf.format(Date())
 
                 val sharedPref = applicationContext.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
                 sharedPref.edit().putString("fecha_finales", fechaActual).apply()
 
-                Log.d("DEBUG_LOGCAT", "¡ÉXITO! Fecha guardada: $fechaActual")
+                Log.d("DEBUG_SAVE", "Finales guardadas exitosamente: $fechaActual")
                 Result.success()
             } else {
-                Log.e("DEBUG_LOGCAT", "FALLO: El parser devolvió una lista vacía. Revisa el Regex en el Repositorio.")
                 Result.failure()
             }
         } catch (e: Exception) {
-            Log.e("DEBUG_LOGCAT", "ERROR CRÍTICO en doWork: ${e.message}")
+            Log.e("DEBUG_SAVE", "Error en SaveFinalesWorker: ${e.message}")
             Result.failure()
         }
     }

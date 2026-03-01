@@ -12,18 +12,14 @@ class FetchFinalesWorker(context: Context, params: WorkerParameters) : Coroutine
         return try {
             val repository = SicenetRepository(RetrofitClient.apiService)
 
-            // 1. Recuperamos el XML (que puede ser nulo)
-            val xml: String? = repository.recuperarKardex()
+            // 1. Llamamos al método específico para Calificaciones Finales
+            val respuestaXml = repository.recuperarCalificacionesFinales()
 
-            // 2. Usamos el operador ?. (safe call) y verificamos que no sea nulo
-            if (xml?.contains("getResumenAcademicoResult") == true) {
-                Result.success(workDataOf("xml_finales" to xml))
-            } else {
-                // Si es nulo o no contiene el tag, fallamos
-                Result.failure()
-            }
+            // 2. Pasamos el XML al siguiente Worker (SaveFinalesWorker)
+            val outputData = workDataOf("xml_finales" to respuestaXml)
+            Result.success(outputData)
         } catch (e: Exception) {
-            Result.retry()
+            Result.failure()
         }
     }
 }

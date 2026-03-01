@@ -24,23 +24,17 @@ import com.example.sicenet.ui.SicenetViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    val context = LocalContext.current
     val listaFinales by vm.finalesLocal.collectAsState(initial = emptyList())
+    val context = LocalContext.current
 
-    // 1. Estado para la fecha (se inicializa con lo que haya en disco)
-    var ultimaSinc by remember { mutableStateOf("Sin sincronizar") }
-
-    // Función para leer la fecha de SharedPreferences
-    fun cargarFecha() {
-        val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
-        val ultimaSinc = sharedPref.getString("fecha_finales", "Esperando datos...") ?: "Esperando datos..."    }
-
-    // 2. Sincronización automática y actualización de fecha
-    // Observamos 'listaFinales': si cambia, refrescamos la etiqueta de fecha
-    LaunchedEffect(listaFinales) {
+    // Sincronización automática al entrar
+    LaunchedEffect(Unit) {
         vm.sincronizarFinales(context)
-        cargarFecha()
     }
+
+    // LÓGICA IGUAL A UNIDADES: Recuperar fecha directamente
+    val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
+    val ultimaSinc = sharedPref.getString("fecha_finales", "Sin sincronizar") ?: "Sin sincronizar"
 
     Scaffold(
         topBar = {
@@ -55,8 +49,7 @@ fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-
-            // ETIQUETA DE ACTUALIZACIÓN DINÁMICA
+            // Etiqueta de fecha (Misma lógica que Unidades)
             Surface(
                 color = MaterialTheme.colorScheme.tertiaryContainer,
                 modifier = Modifier.fillMaxWidth()
@@ -65,30 +58,22 @@ fun FinalesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     text = "Última sincronización: $ultimaSinc",
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.padding(8.dp),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    textAlign = TextAlign.Center
                 )
             }
 
             if (listaFinales.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator()
-                        Spacer(Modifier.height(8.dp))
-                        Text("Buscando calificaciones...")
-                    }
+                    CircularProgressIndicator()
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(listaFinales) { registro ->
-                        FinalItemCard(
-                            materia = registro.materia,
-                            calificacion = registro.calificacion
-                        )
+                    items(listaFinales) { materia ->
+                        KardexItemCard(materia)
                     }
                 }
             }

@@ -7,42 +7,31 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.sicenet.data.RetrofitClient
 import com.example.sicenet.data.SicenetRepository
-import com.example.sicenet.data.local.SicenetDatabase
+import java.io.File
 
 class FetchKardexWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
-        val repository = SicenetRepository(RetrofitClient.apiService)
-        val database = SicenetDatabase.getDatabase(applicationContext)
-
         return try {
-            val xml = repository.recuperarKardex()
+            val repository = SicenetRepository(RetrofitClient.apiService)
+            val respuestaXml = repository.recuperarKardex()
 
-            if (xml != null) {
-                // Procesamos el XML aquí mismo para no tener que pasarlo
-                val lista = repository.procesarKardex(xml)
+            if (respuestaXml != null) {
+                // 1. Crear un archivo temporal en la memoria caché
+                val file = File(applicationContext.cacheDir, "kardex_temp.xml")
+                file.writeText(respuestaXml)
 
-                if (lista.isNotEmpty()) {
-                    database.sicenetDao().limpiarKardex()
-                    database.sicenetDao().insertarKardex(lista)
-                    Log.d("DEBUG_KARDEX", "¡ÉXITO! ${lista.size} materias guardadas directamente.")
-                    Result.success()
-                } else {
-                    Log.e("DEBUG_KARDEX", "No se encontraron materias en el XML")
-                    Result.failure()
-                }
+                // 2. Pasamos la RUTA del archivo, que pesa solo unos cuantos bytes
+                val outputData = workDataOf("kardex_file_path" to file.absolutePath)
+
+                Log.d("DEBUG_XML", "Kardex XML guardado en caché y ruta enviada")
+                Result.success(outputData)
             } else {
+                Log.e("DEBUG_XML", "El XML del Kardex llegó nulo")
                 Result.failure()
             }
         } catch (e: Exception) {
-            Log.e("DEBUG_KARDEX", "Error: ${e.message}")
-            Result.retry()
+            Log.e("DEBUG_XML", "Error en FetchKardexWorker: ${e.message}")
+            Result.failure()
         }
-        // Dentro de doWork
-        val xmlFull = repository.recuperarKardex() ?: return Result.failure()
-// Limpiamos el XML para que quepa en los 10KB de salida
-        val jsonLimpio = xmlFull.substringAfter("<getAllKardexConPromedioByAlumnoResult>")
-            .substringBefore("</getAllKardexConPromedioByAlumnoResult>")
-
-        return Result.success(workDataOf("kardex_json" to jsonLimpio)) // Datos de SALIDA
     }
 }

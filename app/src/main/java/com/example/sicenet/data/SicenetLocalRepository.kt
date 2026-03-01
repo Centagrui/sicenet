@@ -1,3 +1,4 @@
+// SicenetLocalRepository.kt
 package com.example.sicenet.data
 
 import com.example.sicenet.data.local.SicenetDao
@@ -8,8 +9,9 @@ class SicenetLocalRepository(private val dao: SicenetDao) {
     val perfil: Flow<AlumnoPerfil?> = dao.obtenerPerfil()
     val cargaAcademica: Flow<List<Materia>> = dao.obtenerCarga()
     val kardex: Flow<List<Kardex>> = dao.obtenerKardex()
+    val unidades: Flow<List<UnidadCalificacion>> = dao.obtenerUnidades()
+    val finales: Flow<List<Kardex>> = dao.obtenerFinales()
 
-    // Agrega estos métodos para que coincidan con lo que pide tu ViewModel
     suspend fun guardarPerfil(perfil: AlumnoPerfil) = dao.insertarPerfil(perfil)
 
     suspend fun guardarCarga(materias: List<Materia>) {
@@ -18,12 +20,9 @@ class SicenetLocalRepository(private val dao: SicenetDao) {
     }
 
     suspend fun guardarKardex(items: List<Kardex>) = dao.insertarKardex(items)
-    // Dentro de SicenetLocalRepository
-    val unidades: Flow<List<UnidadCalificacion>> = dao.obtenerUnidades()
 
     suspend fun guardarUnidades(lista: List<UnidadCalificacion>) {
         dao.limpiarUnidades()
         dao.insertarUnidades(lista)
     }
-    val finales: Flow<List<Kardex>> = dao.obtenerFinales()
 }

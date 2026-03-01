@@ -26,34 +26,19 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    val context = LocalContext.current
-    val listaKardex by vm.kardexLocal.collectAsState(initial = emptyList())
 
-    // 1. SINCRONIZACIÓN: Solo se dispara UNA VEZ al entrar (usamos Unit)
+fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
+    val listaKardex by vm.kardexLocal.collectAsState(initial = emptyList())
+    val context = LocalContext.current
+
+    // Sincronización automática al entrar
     LaunchedEffect(Unit) {
         vm.sincronizarKardex(context)
     }
 
-    // 2. FECHA: Esta SÍ debe reaccionar cuando cambie la lista
-    // remember(listaKardex) hace que solo se recalcule el String, no que dispare el Worker
-
-    
-// Cambia 'historial' por 'listaKardex' para que reaccione al cambio de datos
-    val ultimaSinc = remember(listaKardex) {
-        context.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
-            .getString("fecha_kardex", "Sin sincronizar") ?: "Sin sincronizar"
-    }
-    // Cálculos de promedio y créditos
-    val promedio = if (listaKardex.isNotEmpty()) {
-        val suma = listaKardex.sumOf { it.calificacion.toDoubleOrNull() ?: 0.0 }
-        (suma / listaKardex.size).format(1)
-    } else { "0.0" }
-
-    val totalCreditos = listaKardex.sumOf { materia ->
-        val calif = materia.calificacion.toIntOrNull() ?: 0
-        if (calif >= 70) (materia.creditos.toIntOrNull() ?: 0) else 0
-    }
+    // LÓGICA IGUAL A UNIDADES: Recuperar fecha directamente
+    val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
+    val ultimaSinc = sharedPref.getString("fecha_kardex", "Sin sincronizar") ?: "Sin sincronizar"
 
     Scaffold(
         topBar = {
@@ -67,47 +52,33 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
             )
         }
     ) { padding ->
-        if (listaKardex.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.padding(padding).fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        Column(modifier = Modifier.padding(padding)) {
+            // Etiqueta de fecha (Misma lógica que Unidades)
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // ETIQUETA DE ACTUALIZACIÓN DINÁMICA
-                item {
-                    Text(
-                        text = "Última actualización: $ultimaSinc",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    text = "Última sincronización: $ultimaSinc",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(8.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
 
-                // TARJETA DE RESUMEN
-                item {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            ResumenItem("Promedio Gral", promedio)
-                            VerticalDivider(modifier = Modifier.height(40.dp), thickness = 1.dp)
-                            ResumenItem("Créditos Totales", totalCreditos.toString())
-                        }
+            if (listaKardex.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(listaKardex) { materia ->
+                        KardexItemCard(materia)
                     }
-                }
-
-                items(listaKardex) { materia ->
-                    KardexItemCard(materia)
                 }
             }
         }

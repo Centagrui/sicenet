@@ -203,21 +203,21 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
             val contenidoJson = xml.substringAfter("<getAllKardexConPromedioByAlumnoResult>")
                 .substringBefore("</getAllKardexConPromedioByAlumnoResult>")
 
-            // Este patrón busca "Materia":"VALOR", "Cdts":VALOR, "Calif":VALOR
-            val patron = """\"Materia\"\s*:\s*\"(.*?)\".*?\"Cdts\"\s*:\s*(\d+).*?\"Calif\"\s*:\s*(\d+)""".toRegex()
+            // Regex tolerante a comillas y espacios para Cdts y Calif
+            val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"cdts\"\s*:\s*\"?(\d+)\"?.*?\"calif\"\s*:\s*\"?(\d+)\"?""".toRegex(RegexOption.IGNORE_CASE)
             val coincidencias = patron.findAll(contenidoJson)
 
             coincidencias.forEach { match ->
                 lista.add(Kardex(
-                    materia = match.groupValues[1],
-                    creditos = match.groupValues[2],
-                    calificacion = match.groupValues[3],
+                    materia = match.groupValues[1].trim(),
+                    creditos = match.groupValues[2].trim(),
+                    calificacion = match.groupValues[3].trim(),
                     periodo = ""
                 ))
             }
-            android.util.Log.d("DEBUG_SAVE_KARDEX", "¡ÉXITO! Se procesaron ${lista.size} materias.")
+            Log.d("DEBUG_SAVE_KARDEX", "¡ÉXITO! Se procesaron ${lista.size} materias en Kárdex.")
         } catch (e: Exception) {
-            android.util.Log.e("PARSER_ERROR", "Error: ${e.message}")
+            Log.e("PARSER_ERROR", "Error en Kardex: ${e.message}")
         }
         return lista
     }
@@ -271,22 +271,22 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
             val contenidoJson = xml.substringAfter("<getAllCalifFinalByAlumnosResult>")
                 .substringBefore("</getAllCalifFinalByAlumnosResult>")
 
-            // Reutilizamos el modelo Kardex o puedes crear uno de Finales
-            // Buscamos Materia y Calif
-            val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"calif\"\s*:\s*(\d+)""".toRegex(RegexOption.IGNORE_CASE)
+            // Regex tolerante a números o letras (ej. "NA") en la calificación
+            val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"calif\"\s*:\s*\"?([a-zA-Z0-9]+)\"?""".toRegex(RegexOption.IGNORE_CASE)
+
             val coincidencias = patron.findAll(contenidoJson)
 
             coincidencias.forEach { match ->
                 lista.add(Kardex(
-                    materia = match.groupValues[1],
-                    calificacion = match.groupValues[2],
+                    materia = match.groupValues[1].trim(),
+                    calificacion = match.groupValues[2].trim(),
                     creditos = "0",
                     periodo = "Actual"
                 ))
             }
             Log.d("DEBUG_FINALES", "Calificaciones finales procesadas: ${lista.size}")
         } catch (e: Exception) {
-            Log.e("PARSER_ERROR_FINALES", "Error: ${e.message}")
+            Log.e("PARSER_ERROR_FINALES", "Error en Finales: ${e.message}")
         }
         return lista
     }
