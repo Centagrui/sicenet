@@ -7,33 +7,46 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Person // Icono de persona
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.sicenet.ui.SicenetViewModel
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 
+/**
+ * Pantalla de Perfil del Alumno.
+ * Muestra la información personal y académica recuperada del servidor y almacenada en Room.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
+    // Estado del scroll para pantallas pequeñas donde el contenido sobrepase el alto
     val scrollState = rememberScrollState()
     val context = LocalContext.current
+
+    // Observamos el perfil desde la base de datos local.
+    // Usamos 'null' como valor inicial para manejar el estado de carga.
     val alumno by vm.perfilLocal.collectAsState(initial = null)
 
-    // Colores Café consistentes
+    // Colores Café consistentes con el diseño global
     val cafeProfundo = Color(0xFF3E2723)
     val cafeClaro = Color(0xFFD7CCC8)
+
+    /**
+     * Sincronización automática: Al entrar a la pantalla, se dispara el Worker
+     * para traer los datos de perfil más recientes del SICENET.
+     */
     LaunchedEffect(Unit) {
-        vm.sincronizarDato("PERFIL") // Usamos la nueva función unificada
+        vm.sincronizarDato("PERFIL")
     }
 
     Scaffold(
@@ -53,15 +66,16 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp)
+                // Habilitamos el scroll vertical
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // --- SECCIÓN DEL ICONO DE PERSONA ---
+            // --- SECCIÓN DEL AVATAR (ICONO DE PERSONA) ---
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .clip(CircleShape)
+                    .clip(CircleShape) // Corta el fondo en forma circular
                     .background(cafeClaro),
                 contentAlignment = Alignment.Center
             ) {
@@ -84,6 +98,7 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Lógica condicional: Si el alumno ya fue cargado de la DB
             if (alumno != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -91,6 +106,7 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        // Reutilizamos el componente DatoItem para cada campo
                         DatoItem(label = "Nombre", valor = alumno!!.nombre, colorLabel = cafeProfundo)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = cafeClaro.copy(alpha = 0.5f))
 
@@ -113,6 +129,7 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     }
                 }
             } else {
+                // Pantalla de carga (Shimmer/Spinner) mientras 'alumno' sea null
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -128,11 +145,14 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     }
 }
 
+/**
+ * Componente interno para mostrar una etiqueta y su valor con estilo consistente.
+ */
 @Composable
 fun DatoItem(label: String, valor: String, colorLabel: Color) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = label.uppercase(),
+            text = label.uppercase(), // Etiquetas en mayúsculas para mejor jerarquía visual
             style = MaterialTheme.typography.labelSmall,
             color = colorLabel,
             fontWeight = FontWeight.Bold

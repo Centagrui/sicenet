@@ -19,22 +19,30 @@ import androidx.compose.ui.unit.dp
 import com.example.sicenet.model.Materia
 import com.example.sicenet.ui.SicenetViewModel
 
+/**
+ * Pantalla que muestra el horario y materias actuales del alumno.
+ * @param vm Instancia del ViewModel para acceder a los datos.
+ * @param onOpenMenu Callback para abrir el Drawer de navegación.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // Definición de la gama de cafés
+    // Definición de la gama de colores tipo "Café/Ocre" para la identidad visual
     val cafeProfundo = Color(0xFF3E2723)
     val cafeMedio = Color(0xFF5D4037)
     val cafeClaro = Color(0xFFD7CCC8)
     val cremaFondo = Color(0xFFEFEBE9)
 
-    // Observamos los datos de la base de datos local
+    // Observamos el Flow de materias desde la DB local y lo convertimos a un Estado de Compose
     val materias by vm.materiasLocal.collectAsState(initial = emptyList())
     val context = LocalContext.current
 
-    // Sincronización automática con el servidor al cargar la pantalla
+    /**
+     * LaunchedEffect con 'Unit' se ejecuta solo una vez cuando se monta la pantalla.
+     * Lanza la sincronización para que el Worker busque datos nuevos en el servidor.
+     */
     LaunchedEffect(Unit) {
-        vm.sincronizarDato("CARGA") // Usamos la nueva función unificada
+        vm.sincronizarDato("CARGA")
     }
 
     Scaffold(
@@ -47,14 +55,14 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = cafeProfundo, // Cambio a café profundo
+                    containerColor = cafeProfundo,
                     titleContentColor = Color.White
                 )
             )
         }
     ) { padding ->
+        // Estado de carga: Si la lista está vacía, mostramos un indicador de progreso
         if (materias.isEmpty()) {
-            // Pantalla de carga mientras se obtienen los datos
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -68,16 +76,16 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 }
             }
         } else {
-            // Lista visual de las materias
+            // Lista eficiente de materias (solo renderiza lo que se ve en pantalla)
             LazyColumn(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
-                contentPadding = PaddingValues(16.dp), // Margen alrededor de toda la lista
-                verticalArrangement = Arrangement.spacedBy(12.dp) // Espacio entre cada tarjeta
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(materias) { materia ->
-                    // Llamamos a la función visual que definiste abajo
+                    // Componente visual para cada materia
                     MateriaCard(materia = materia, colorPrimario = cafeProfundo, colorFondo = cremaFondo)
                 }
             }
@@ -85,13 +93,16 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     }
 }
 
+/**
+ * Componente visual individual para representar una materia.
+ */
 @Composable
 fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = colorFondo // Cambio a crema suave
+            containerColor = colorFondo
         )
     ) {
         Column(
@@ -99,15 +110,21 @@ fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
+            // Nombre de la Materia
             Text(
                 text = materia.nombre,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = colorPrimario // Cambio a café profundo
+                color = colorPrimario
             )
 
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = colorPrimario.copy(alpha = 0.2f))
+            // Línea divisora sutil
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = colorPrimario.copy(alpha = 0.2f)
+            )
 
+            // Fila de información secundaria (Grupo)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -117,16 +134,11 @@ fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Black
                 )
-                //Text(
-                //
-                //    text = "Créditos: ${materia.creditos}",
-                // style = MaterialTheme.typography.labelLarge,
-                // fontWeight = FontWeight.SemiBold
-                //   )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
+            // Información del Docente
             Text(
                 text = "Profesor: ${materia.profesor}",
                 style = MaterialTheme.typography.bodyMedium,

@@ -6,27 +6,32 @@ import retrofit2.http.Header
 import retrofit2.http.Headers
 import retrofit2.http.POST
 
+/**
+ * Define las llamadas directas al Servidor (Web Service).
+ * Cada función representa una consulta específica que el servidor sabe responder.
+ */
 interface SicenetApiService {
 
-    // Login (Ya lo tenías)
+    // --- ACCESO LOGIN ---
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
-        "SOAPAction: \"http://tempuri.org/accesoLogin\""
+        "SOAPAction: \"http://tempuri.org/accesoLogin\"" // Indica al servidor qué función ejecutar
     )
-    @POST("wsalumnos.asmx")
+    @POST("wsalumnos.asmx") // El archivo en el servidor que recibe las peticiones
     suspend fun accesoLogin(@Body body: String): Response<String>
 
+    // Sobrecarga de login para cuando ya tenemos una sesión activa (Cookie)
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/accesoLogin\""
     )
     @POST("wsalumnos.asmx")
     suspend fun accesoLogin(
-        @Header("Cookie") cookie: String,
-        @Body body: String
+        @Header("Cookie") cookie: String, // La "llave" de sesión
+        @Body body: String               // El XML con las credenciales
     ): Response<String>
 
-    // Perfil (Ya lo tenías)
+    // --- PERFIL ---
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getAlumnoAcademicoWithLineamiento\""
@@ -37,9 +42,7 @@ interface SicenetApiService {
         @Body body: String
     ): Response<String>
 
-    // --- NUEVOS MÉTODOS PARA LA ENTREGA 2 ---
-
-    // 1. Carga Académica
+    // --- 1. CARGA ACADÉMICA (Materias actuales) ---
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getCargaAcademicaByAlumno\""
@@ -50,7 +53,7 @@ interface SicenetApiService {
         @Body body: String
     ): Response<String>
 
-    // 2. Kardex
+    // --- 2. KARDEX (Historial completo) ---
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getAllKardexConPromedioByAlumno\""
@@ -61,7 +64,7 @@ interface SicenetApiService {
         @Body body: String
     ): Response<String>
 
-    // 3. Calificaciones por Unidad
+    // --- 3. CALIFICACIONES POR UNIDAD (Parciales) ---
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getCalifUnidadesByAlumno\""
@@ -72,7 +75,7 @@ interface SicenetApiService {
         @Body body: String
     ): Response<String>
 
-    // 4. Calificación Final
+    // --- 4. CALIFICACIÓN FINAL (Promedios) ---
     @Headers(
         "Content-Type: text/xml; charset=utf-8",
         "SOAPAction: \"http://tempuri.org/getAllCalifFinalByAlumnos\""

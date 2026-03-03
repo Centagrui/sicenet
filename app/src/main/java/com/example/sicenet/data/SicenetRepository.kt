@@ -7,13 +7,22 @@ import com.example.sicenet.model.Materia
 import com.example.sicenet.model.Kardex
 import com.example.sicenet.model.UnidadCalificacion
 
+/**
+ * Implementación del Repositorio de Sicenet.
+ * Se encarga de la comunicación remota (SOAP) y la transformación de datos (Parsing).
+ */
 class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository {
 
-    companion object { // Esto hace que la cookie sea compartida por TODOS los repositorios
+    companion object {
+        // Variable estática para almacenar la Cookie de sesión y compartirla entre hilos/workers.
         var sessionCookie: String? = null
     }
 
+    /**
+     * Realiza la petición de inicio de sesión al servidor.
+     */
     override suspend fun login(matricula: String, contrasenia: String): Boolean {
+        // Construcción manual del sobre SOAP para el Login
         val soapLogin = """
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
               <soap:Body>
@@ -27,18 +36,19 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         """.trimIndent()
 
         return try {
+            // "ASP.NET_SessionId=detect" le indica al servidor que inicie una sesión nueva
             val response = api.accesoLogin("ASP.NET_SessionId=detect", soapLogin)
             if (response.isSuccessful) {
                 val body = response.body() ?: ""
 
-                // Guardar Cookie de sesión
+                // Extraemos la Cookie 'Set-Cookie' del encabezado para futuras peticiones
                 val rawCookie = response.headers()["Set-Cookie"]
                 if (rawCookie != null) {
                     sessionCookie = rawCookie.split(";")[0]
                     Log.d("SICENET", "Cookie obtenida: $sessionCookie")
                 }
 
-                // VALIDACIÓN FLEXIBLE: Acepta con o sin espacios en el JSON del servidor
+                // Verificamos si el JSON devuelto dentro del XML contiene el éxito del acceso
                 val loginExitoso = body.contains("\"acceso\":true", ignoreCase = true) ||
                         body.contains("\"acceso\": true", ignoreCase = true)
 
@@ -59,6 +69,9 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         }
     }
 
+    /**
+     * Descarga el XML crudo con la información del perfil del alumno.
+     */
     override suspend fun recuperarPerfil(): String? {
         val cookieActual = sessionCookie ?: return "Error: Sin Sesión"
         val soapPerfil = """
@@ -75,8 +88,12 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         } catch (e: Exception) { null }
     }
 
+    /**
+     * Procesa el XML de perfil usando substrings para extraer campos específicos.
+     */
     override fun procesarDatosPerfil(xml: String): AlumnoPerfil? {
         return try {
+            // Extraemos solo la parte del JSON que está dentro de las etiquetas XML del resultado
             val jsonRaw = xml.substringAfter("<getAlumnoAcademicoWithLineamientoResult>")
                 .substringBefore("</getAlumnoAcademicoWithLineamientoResult>")
 
@@ -85,6 +102,7 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
             val carrera = jsonRaw.substringAfter("\"carrera\":\"", "").substringBefore("\"")
             val especialidad = jsonRaw.substringAfter("\"especialidad\":\"", "").substringBefore("\"")
 
+            // Limpiamos comillas y espacios de los valores numéricos
             val semestre = jsonRaw.substringAfter("\"semActual\":").substringBefore(",").replace("\"", "").trim()
             val creditos = jsonRaw.substringAfter("\"cdtosActuales\":").substringBefore(",").replace("\"", "").trim()
 
@@ -103,6 +121,9 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         }
     }
 
+    /**
+     * Descarga el XML de la carga académica actual.
+     */
     override suspend fun recuperarCargaAcademica(): String? {
         val soapCarga = """
         <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -115,6 +136,9 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         } catch (e: Exception) { null }
     }
 
+    /**
+     * Descarga el XML del Kárdex (Historial Académico).
+     */
     override suspend fun recuperarKardex(): String? {
         val soapKardex = """
         <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -131,6 +155,9 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         } catch (e: Exception) { null }
     }
 
+    /**
+     * Descarga el XML de calificaciones por unidad (parciales).
+     */
     override suspend fun recuperarCalificacionesUnidades(): String? {
         val soapCalif = """
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -142,6 +169,9 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         } catch (e: Exception) { null }
     }
 
+    /**
+     * Descarga el XML de calificaciones finales.
+     */
     override suspend fun recuperarCalificacionesFinales(): String? {
         val soapFinal = """
             <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -156,12 +186,17 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
             if (response.isSuccessful) response.body() else null
         } catch (e: Exception) { null }
     }
+
+    /**
+     * Procesa el XML de la carga usando una expresión regular (Regex) para identificar bloques de materias.
+     */
     override fun procesarCargaAcademica(xml: String): List<Materia> {
         val lista = mutableListOf<Materia>()
         try {
             val contenidoJson = xml.substringAfter("<getCargaAcademicaByAlumnoResult>")
                 .substringBefore("</getCargaAcademicaByAlumnoResult>")
 
+            // El patrón busca pares de "Docente", "Materia" y "Grupo"
             val patron = """
             "Docente"\s*:\s*"(.*?)".*?
             "Materia"\s*:\s*"(.*?)".*?
@@ -178,16 +213,12 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
                 if (materia.isNotBlank()) {
                     lista.add(
                         Materia(
-                            clave = materia,    // <--- AGREGAMOS LA CLAVE AQUÍ (Usamos el nombre como ID)
+                            clave = materia,
                             nombre = materia,
                             profesor = docente,
                             grupo = grupo,
                             creditos = "",
-                            lunes = "",
-                            martes = "",
-                            miercoles = "",
-                            jueves = "",
-                            viernes = ""
+                            lunes = "", martes = "", miercoles = "", jueves = "", viernes = ""
                         )
                     )
                 }
@@ -198,13 +229,17 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         }
         return lista
     }
+
+    /**
+     * Procesa el XML del Kárdex buscando materia, créditos (cdts) y calificación (calif).
+     */
     override fun procesarKardex(xml: String): List<Kardex> {
         val lista = mutableListOf<Kardex>()
         try {
             val contenidoJson = xml.substringAfter("<getAllKardexConPromedioByAlumnoResult>")
                 .substringBefore("</getAllKardexConPromedioByAlumnoResult>")
 
-            // Regex tolerante a comillas y espacios para Cdts y Calif
+            // Regex diseñada para capturar campos opcionalmente rodeados por comillas
             val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"cdts\"\s*:\s*\"?(\d+)\"?.*?\"calif\"\s*:\s*\"?(\d+)\"?""".toRegex(RegexOption.IGNORE_CASE)
             val coincidencias = patron.findAll(contenidoJson)
 
@@ -222,7 +257,10 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         }
         return lista
     }
-    // --- PROCESAR UNIDADES (Para UnidadesScreen y SaveUnidadesWorker) ---
+
+    /**
+     * Procesa el XML de unidades. Itera del C1 al C13 por cada materia encontrada.
+     */
     override fun procesarUnidades(xml: String): List<UnidadCalificacion> {
         val lista = mutableListOf<UnidadCalificacion>()
         try {
@@ -236,19 +274,18 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
             bloques.forEach { bloque ->
                 val textoBloque = bloque.value
 
-                // 2. Extraer el nombre de la materia
+                // 2. Extraer el nombre de la materia en el bloque actual
                 val nombreMateria = """\"Materia\"\s*:\s*\"(.*?)\"""".toRegex()
                     .find(textoBloque)?.groupValues?.get(1) ?: "Materia Desconocida"
 
-                // 3. Extraer C1, C2, C3... (hasta C13 si existen)
-                // Solo agregamos las que no sean "null" o vacías
+                // 3. Extraer C1, C2, C3... hasta C13 si existen
                 for (i in 1..13) {
                     val califRegex = """\"C$i\"\s*:\s*\"(.*?)\"""".toRegex()
                     val coincidencia = califRegex.find(textoBloque)
 
                     val valor = coincidencia?.groupValues?.get(1)
 
-                    // Si tiene calificación (aunque sea "0"), la agregamos como unidad
+                    // Solo agregamos si el valor no es nulo o literal "null"
                     if (valor != null && valor != "null") {
                         lista.add(UnidadCalificacion(
                             materia = nombreMateria,
@@ -265,14 +302,16 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
         return lista
     }
 
-    // --- PROCESAR CALIFICACIONES FINALES (Para FinalesScreen) ---
-    // En SicenetRepository.kt
-    override fun procesarCalificacionesFinales(xml: String): List<CalificacionFinal> { // <- CAMBIAR A CalificacionFinal
-        val lista = mutableListOf<CalificacionFinal>() // <- CAMBIAR A CalificacionFinal
+    /**
+     * Procesa el XML de promedios finales para la pantalla de Finales.
+     */
+    override fun procesarCalificacionesFinales(xml: String): List<CalificacionFinal> {
+        val lista = mutableListOf<CalificacionFinal>()
         try {
             val contenidoJson = xml.substringAfter("<getAllCalifFinalByAlumnosResult>")
                 .substringBefore("</getAllCalifFinalByAlumnosResult>")
 
+            // Buscamos el nombre de la materia y su calificación final
             val patron = """\"materia\"\s*:\s*\"(.*?)\".*?\"calif\"\s*:\s*\"?(.*?)\"""".toRegex(RegexOption.IGNORE_CASE)
             val coincidencias = patron.findAll(contenidoJson)
 
@@ -280,6 +319,7 @@ class SicenetRepository(private val api: SicenetApiService) : ISicenetRepository
                 val nombreMateria = match.groupValues[1].trim()
                 var calif = match.groupValues[2].trim()
 
+                // Si la calificación está vacía (materia en curso), ponemos S/N (Sin Nota)
                 if (calif.isEmpty() || calif == "null") calif = "S/N"
 
                 lista.add(CalificacionFinal(

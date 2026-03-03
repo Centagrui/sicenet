@@ -11,9 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -24,19 +21,26 @@ import com.example.sicenet.model.Kardex
 import com.example.sicenet.ui.SicenetViewModel
 import java.util.Locale
 
+/**
+ * Pantalla que despliega el historial académico (Kárdex).
+ * Implementa sincronización automática y visualización de fecha de actualización.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-
 fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
+    // Observamos el flujo de datos del Kárdex desde la base de datos local
     val listaKardex by vm.kardexLocal.collectAsState(initial = emptyList())
     val context = LocalContext.current
 
-    // Sincronización automática al entrar
+    /**
+     * Sincronización automática: Al abrir el Kárdex, se dispara el Worker unificado.
+     * Esto asegura que los datos locales se refresquen con lo más nuevo del SICENET.
+     */
     LaunchedEffect(Unit) {
-        vm.sincronizarDato("KARDEX") // Usamos la nueva función unificada
+        vm.sincronizarDato("KARDEX")
     }
 
-    // LÓGICA IGUAL A UNIDADES: Recuperar fecha directamente
+    // Recuperamos la última fecha de éxito guardada en SharedPreferences
     val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
     val ultimaSinc = sharedPref.getString("fecha_kardex", "Sin sincronizar") ?: "Sin sincronizar"
 
@@ -53,7 +57,7 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            // Etiqueta de fecha (Misma lógica que Unidades)
+            // Banner de estado con color secundario para diferenciar de otras pantallas
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 modifier = Modifier.fillMaxWidth()
@@ -66,11 +70,13 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 )
             }
 
+            // Si no hay datos (primera vez o cargando), mostramos el Spinner
             if (listaKardex.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
+                // Lista scrolleable con el historial
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
@@ -85,6 +91,10 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     }
 }
 
+/**
+ * Tarjeta individual para cada materia del Kárdex.
+ * Resalta la calificación con un fondo de color (Verde/Rojo).
+ */
 @Composable
 fun KardexItemCard(kardex: Kardex) {
     Card(
@@ -95,6 +105,7 @@ fun KardexItemCard(kardex: Kardex) {
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Información de la materia (Lado izquierdo)
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = kardex.materia,
@@ -108,8 +119,12 @@ fun KardexItemCard(kardex: Kardex) {
                 )
             }
 
+            // Badge de Calificación (Lado derecho)
             val nota = kardex.calificacion.toIntOrNull() ?: 0
-            val colorFondo = if (nota >= 70) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            val colorFondo = if (nota >= 70)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.error
 
             Surface(
                 color = colorFondo,
@@ -127,6 +142,9 @@ fun KardexItemCard(kardex: Kardex) {
     }
 }
 
+/**
+ * Componente preparado para mostrar resúmenes (como promedio general o créditos totales).
+ */
 @Composable
 fun ResumenItem(label: String, valor: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -144,4 +162,7 @@ fun ResumenItem(label: String, valor: String) {
     }
 }
 
+/**
+ * Función de extensión para dar formato a decimales (útil para promedios).
+ */
 fun Double.format(digits: Int) = "%.${digits}f".format(Locale.US, this)

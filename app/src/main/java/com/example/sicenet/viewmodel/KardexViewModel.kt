@@ -12,22 +12,42 @@ import com.example.sicenet.model.Kardex
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel que gestiona exclusivamente la lógica del historial académico (Kárdex).
+ * @param localRepository Repositorio que conecta con los DAOs de Room.
+ * @param context Contexto necesario para inicializar el WorkManager.
+ */
 class KardexViewModel(
     private val localRepository: SicenetLocalRepository,
     private val context: Context
 ) : ViewModel() {
 
-    // Observamos el flujo de datos de Room (se actualiza solo)
+    /**
+     * Fuente de verdad única: Exponemos el Flow de Room.
+     * Cualquier cambio realizado por los Workers en la base de datos se reflejará
+     * automáticamente en la UI que observe este flujo.
+     */
     val listaKardex: Flow<List<Kardex>> = localRepository.kardex
 
-    // Función para refrescar los datos usando los Workers que ya tienes
+    /**
+     * Orquestación de procesos en segundo plano.
+     * Utiliza WorkManager para asegurar que la descarga y el guardado se completen
+     * incluso si el usuario sale de la aplicación.
+     */
     fun refrescarKardex() {
         val workManager = WorkManager.getInstance(context)
 
-        // Encadenamos: Primero traer del servidor, luego guardar en Room
+        // 1. Petición para descargar el XML del servidor SOAP
         val fetchRequest = OneTimeWorkRequestBuilder<FetchKardexWorker>().build()
+
+        // 2. Petición para parsear el XML y persistirlo en las tablas de Room
         val saveRequest = OneTimeWorkRequestBuilder<SaveKardexWorker>().build()
 
+        /**
+         * ENCADENAMIENTO ESTRATÉGICO:
+         * El operador .then() garantiza que SaveKardexWorker no se ejecute
+         * hasta que FetchKardexWorker termine con éxito y entregue los datos.
+         */
         workManager.beginWith(fetchRequest)
             .then(saveRequest)
             .enqueue()

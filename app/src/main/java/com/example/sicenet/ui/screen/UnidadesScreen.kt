@@ -24,24 +24,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.sicenet.ui.SicenetViewModel
 
+/**
+ * Pantalla que muestra el desglose de calificaciones por unidades (parciales).
+ * Organiza los datos en formato de tabla para facilitar la lectura por materia.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
+    // Observamos las unidades desde Room
     val listaUnidades by vm.unidadesLocal.collectAsState(initial = emptyList())
     val context = LocalContext.current
 
-    // Paleta de colores Café
-
-
+    // Paleta de colores Café consistente con el branding de la App
     val cafeProfundo = Color(0xFF3E2723)
     val cafeMedio = Color(0xFF5D4037)
     val cremaFondo = Color(0xFFF5F5F5)
 
+    // Recuperación de la fecha de última sincronización específica para Unidades
     val sharedPref = context.getSharedPreferences("sicenet_prefs", android.content.Context.MODE_PRIVATE)
     val ultimaSinc = sharedPref.getString("fecha_unidades", "Sin sincronizar") ?: "Sin sincronizar"
 
+    /**
+     * Sincronización automática: Al entrar, se dispara el Worker para obtener
+     * las calificaciones parciales más recientes.
+     */
     LaunchedEffect(Unit) {
-        vm.sincronizarDato("UNIDADES") // Usamos la nueva función unificada
+        vm.sincronizarDato("UNIDADES")
     }
 
     Scaffold(
@@ -57,7 +65,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
-            // Etiqueta de sincronización
+            // Banner informativo superior
             Surface(color = cafeProfundo, modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "Última sincronización: $ultimaSinc",
@@ -73,7 +81,10 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     CircularProgressIndicator(color = cafeProfundo)
                 }
             } else {
-                // Agrupamos las unidades por nombre de materia para armar las tablas
+                /**
+                 * LÓGICA DE AGRUPACIÓN:
+                 * Obtenemos los nombres únicos de las materias para crear una tabla por cada una.
+                 */
                 val materiasUnicas = listaUnidades.map { it.materia }.distinct()
 
                 LazyColumn(
@@ -82,9 +93,9 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(materiasUnicas) { nombreMateria ->
+                        // Filtramos solo las unidades que pertenecen a esta materia
                         val unidadesDeEstaMateria = listaUnidades.filter { it.materia == nombreMateria }
 
-                        // Tabla visual estilo Café
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(8.dp),
@@ -93,7 +104,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                             elevation = CardDefaults.cardElevation(4.dp)
                         ) {
                             Column {
-                                // ENCABEZADO: Nombre de la materia
+                                // ENCABEZADO DE TABLA: Nombre de la asignatura
                                 Box(modifier = Modifier.fillMaxWidth().background(cafeProfundo).padding(8.dp)) {
                                     Text(
                                         text = nombreMateria.uppercase(),
@@ -105,7 +116,7 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                                     )
                                 }
 
-                                // FILA DE TITULOS: U1 a U9
+                                // FILA DE TÍTULOS: Encabezados de Unidades (U1 a U9)
                                 Row(modifier = Modifier.fillMaxWidth().background(cremaFondo)) {
                                     Box(modifier = Modifier.weight(2f).border(0.5.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
                                         Text("Unidades", fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -117,9 +128,9 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                                     }
                                 }
 
-                                // FILA DE DATOS: Calif / Faltas
+                                // FILA DE DATOS: Muestra Calificación y Faltas
                                 Row(modifier = Modifier.fillMaxWidth()) {
-                                    // Etiqueta lateral
+                                    // Etiqueta de fila (Calif / Faltas)
                                     Box(modifier = Modifier.weight(2f).border(0.5.dp, Color.LightGray).padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
                                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             Text("Calif.", fontSize = 8.sp, fontWeight = FontWeight.Bold)
@@ -127,14 +138,14 @@ fun UnidadesScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                                         }
                                     }
 
-                                    // Celdas U1 a U9
+                                    // Renderizado dinámico de las 9 columnas de unidades
                                     for (i in 1..9) {
-                                        // Buscamos si existe la unidad i en la lista
-                                        val uActual = unidadesDeEstaMateria.find { it.unidad == i.toString() || it.unidad == "$i" }
+                                        val uActual = unidadesDeEstaMateria.find { it.unidad == i.toString() }
                                         val calif = uActual?.calificacion ?: "-"
 
                                         Box(modifier = Modifier.weight(1f).border(0.5.dp, Color.LightGray).padding(vertical = 4.dp), contentAlignment = Alignment.Center) {
                                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                // Lógica de color: Rojo si la calificación es menor a 70 (reprobatoria)
                                                 Text(
                                                     text = calif,
                                                     fontSize = 10.sp,
