@@ -22,29 +22,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.sicenet.ui.SicenetViewModel
 
-/**
- * Pantalla de Perfil del Alumno.
- * Muestra la información personal y académica recuperada del servidor y almacenada en Room.
- */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // Estado del scroll para pantallas pequeñas donde el contenido sobrepase el alto
     val scrollState = rememberScrollState()
     val context = LocalContext.current
-
-    // Observamos el perfil desde la base de datos local.
-    // Usamos 'null' como valor inicial para manejar el estado de carga.
+// se eempiexana  cargar los datos y se carga con null en lo que encuntra la informacion
     val alumno by vm.perfilLocal.collectAsState(initial = null)
 
-    // Colores Café consistentes con el diseño global
     val cafeProfundo = Color(0xFF3E2723)
     val cafeClaro = Color(0xFFD7CCC8)
 
-    /**
-     * Sincronización automática: Al entrar a la pantalla, se dispara el Worker
-     * para traer los datos de perfil más recientes del SICENET.
-     */
+   // nos traemos los datos del worker
     LaunchedEffect(Unit) {
         vm.sincronizarDato("PERFIL")
     }
@@ -71,11 +61,10 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
-            // --- SECCIÓN DEL AVATAR (ICONO DE PERSONA) ---
             Box(
                 modifier = Modifier
                     .size(100.dp)
-                    .clip(CircleShape) // Corta el fondo en forma circular
+                    .clip(CircleShape)
                     .background(cafeClaro),
                 contentAlignment = Alignment.Center
             ) {
@@ -98,7 +87,7 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Lógica condicional: Si el alumno ya fue cargado de la DB
+            // empieza a ver si ya esta en Alumno en la bd
             if (alumno != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -106,7 +95,7 @@ fun ProfileScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                     colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        // Reutilizamos el componente DatoItem para cada campo
+                       // para lo que va a mostrar en la pantalla
                         DatoItem(label = "Nombre", valor = alumno!!.nombre, colorLabel = cafeProfundo)
                         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = cafeClaro.copy(alpha = 0.5f))
 

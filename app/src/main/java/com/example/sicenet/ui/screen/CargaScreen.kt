@@ -19,15 +19,10 @@ import androidx.compose.ui.unit.dp
 import com.example.sicenet.model.Materia
 import com.example.sicenet.ui.SicenetViewModel
 
-/**
- * Pantalla que muestra el horario y materias actuales del alumno.
- * @param vm Instancia del ViewModel para acceder a los datos.
- * @param onOpenMenu Callback para abrir el Drawer de navegación.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
-    // Definición de la gama de colores tipo "Café/Ocre" para la identidad visual
+
     val cafeProfundo = Color(0xFF3E2723)
     val cafeMedio = Color(0xFF5D4037)
     val cafeClaro = Color(0xFFD7CCC8)
@@ -37,10 +32,7 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     val materias by vm.materiasLocal.collectAsState(initial = emptyList())
     val context = LocalContext.current
 
-    /**
-     * LaunchedEffect con 'Unit' se ejecuta solo una vez cuando se monta la pantalla.
-     * Lanza la sincronización para que el Worker busque datos nuevos en el servidor.
-     */
+    // se sincroniza con el workrd y busca datos en el servdor
     LaunchedEffect(Unit) {
         vm.sincronizarDato("CARGA")
     }
@@ -61,7 +53,7 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
             )
         }
     ) { padding ->
-        // Estado de carga: Si la lista está vacía, mostramos un indicador de progreso
+//cargando (icono)
         if (materias.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -76,7 +68,6 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 }
             }
         } else {
-            // Lista eficiente de materias (solo renderiza lo que se ve en pantalla)
             LazyColumn(
                 modifier = Modifier
                     .padding(padding)
@@ -85,7 +76,6 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(materias) { materia ->
-                    // Componente visual para cada materia
                     MateriaCard(materia = materia, colorPrimario = cafeProfundo, colorFondo = cremaFondo)
                 }
             }
@@ -93,9 +83,7 @@ fun CargaScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
     }
 }
 
-/**
- * Componente visual individual para representar una materia.
- */
+
 @Composable
 fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
     Card(
@@ -110,7 +98,6 @@ fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
                 .padding(16.dp)
                 .fillMaxWidth()
         ) {
-            // Nombre de la Materia
             Text(
                 text = materia.nombre,
                 style = MaterialTheme.typography.titleLarge,
@@ -118,13 +105,11 @@ fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
                 color = colorPrimario
             )
 
-            // Línea divisora sutil
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 8.dp),
                 color = colorPrimario.copy(alpha = 0.2f)
             )
 
-            // Fila de información secundaria (Grupo)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -138,7 +123,6 @@ fun MateriaCard(materia: Materia, colorPrimario: Color, colorFondo: Color) {
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Información del Docente
             Text(
                 text = "Profesor: ${materia.profesor}",
                 style = MaterialTheme.typography.bodyMedium,
