@@ -15,26 +15,24 @@ import java.util.Locale
 class SaveFinalesWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
-        // 1. Recuperar el XML del Worker anterior
+
         val xml = inputData.getString("xml_finales") ?: return Result.failure()
 
         val database = SicenetDatabase.getDatabase(applicationContext)
         val repository = SicenetRepository(RetrofitClient.apiService)
-// Dentro de SaveFinalesWorker.kt -> doWork()
         return try {
             val repository = SicenetRepository(RetrofitClient.apiService)
             val database = SicenetDatabase.getDatabase(applicationContext)
             val dao = database.sicenetDao()
 
-            // Usamos first() para obtener la lista actual del Flow
             val materiasCarga = dao.obtenerCargaDirecta()
 
-            // 2. Procesamos el XML de Finales que llegó del servidor
+
             val finalesServidor = repository.procesarCalificacionesFinales(xml)
 
-            // 3. Creamos la lista final combinada
+
             val listaParaGuardar = materiasCarga.map { materiaCarga ->
-                // Buscamos si esta materia de la carga existe en lo que mandó el servidor
+
                 val califEncontrada = finalesServidor.find {
                     it.materia.uppercase().trim() == materiaCarga.nombre.uppercase().trim()
                 }
@@ -42,12 +40,11 @@ class SaveFinalesWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
                 CalificacionFinal(
                     materia = materiaCarga.nombre,
                     calificacion = califEncontrada?.calificacion
-                        ?: "S/N", // Si no existe, ponemos S/N
-                   // creditos = materiaCarga.creditos
+                        ?: "S/N",
                 )
             }
 
-            // 4. Guardamos en la tabla de finales
+
             if (listaParaGuardar.isNotEmpty()) {
                 dao.limpiarFinales()
                 dao.insertarFinales(listaParaGuardar)

@@ -13,6 +13,7 @@ class SaveProfileWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
         val database = SicenetDatabase.getDatabase(applicationContext)
         val repository = SicenetRepository(RetrofitClient.apiService)
 
+
         return try {
             val perfil = repository.procesarDatosPerfil(xml)
             if (perfil != null) {

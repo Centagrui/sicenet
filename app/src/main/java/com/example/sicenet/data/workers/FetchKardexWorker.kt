@@ -13,22 +13,16 @@ import java.io.File
 class FetchKardexWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
 
     override suspend fun doWork(): Result {
-        // 1. PRIMERO declaramos e inicializamos lo que vamos a usar
         val repository = SicenetRepository(RetrofitClient.apiService)
         val database = SicenetDatabase.getDatabase(applicationContext)
 
         return try {
-            // 2. Intentamos recuperar el Kardex
-            val respuestaXml = repository.recuperarKardex()
 
-            // 3. Manejo de sesión expirada o nula
+            val respuestaXml = repository.recuperarKardex()
             if (respuestaXml == null || respuestaXml.contains("error", ignoreCase = true)) {
                 Log.e("DEBUG_XML", "Sesión inválida o respuesta nula")
-                // Opcional: Podrías limpiar el perfil aquí si detectas error de sesión
                 return Result.failure()
             }
-
-            // 4. Si todo está bien, guardamos en archivo temporal (para evitar el límite de 10KB)
             val file = File(applicationContext.cacheDir, "kardex_temp.xml")
             file.writeText(respuestaXml)
 

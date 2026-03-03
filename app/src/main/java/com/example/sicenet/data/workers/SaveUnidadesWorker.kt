@@ -12,22 +12,21 @@ import java.util.Locale
 
 class SaveUnidadesWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
-        // Recuperamos el XML del Worker anterior
         val xml = inputData.getString("unidades_xml") ?: return Result.failure()
 
         val database = SicenetDatabase.getDatabase(applicationContext)
         val repository = SicenetRepository(RetrofitClient.apiService)
 
         return try {
-            // 1. Procesar el XML para convertirlo en Lista de Objetos
+
             val listaUnidades = repository.procesarUnidades(xml)
 
             if (listaUnidades.isNotEmpty()) {
-                // 2. Guardar en la DB Local (Repository Local indirecto vía DAO)
-                database.sicenetDao().limpiarUnidades() // <-- PASO VITAL
+
+                database.sicenetDao().limpiarUnidades()
                 database.sicenetDao().insertarUnidades(listaUnidades)
 
-                // 3. Guardar fecha de actualización (Requisito 2b de la rúbrica)
+                // 3. Guardar fecha de actualización
                 val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
                 val fechaActual = sdf.format(Date())
 

@@ -14,7 +14,7 @@ class FetchProfileWorker(ctx: Context, params: WorkerParameters) : CoroutineWork
         return try {
             val xml = repository.recuperarPerfil()
             if (xml != null) {
-                // Pasamos el XML como salida para el siguiente worker
+                // Pasamos el XML como salida para el siguiente workeeer
                 val outputData = workDataOf("perfil_xml" to xml)
                 Result.success(outputData)
             } else {

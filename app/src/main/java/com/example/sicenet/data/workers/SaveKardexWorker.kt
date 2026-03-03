@@ -12,36 +12,36 @@ import java.io.File
 class SaveKardexWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     override suspend fun doWork(): Result {
         return try {
-            // 1. Recibimos la ruta del archivo
             val filePath = inputData.getString("kardex_file_path") ?: return Result.failure()
             val file = File(filePath)
 
-            // Verificamos que el archivo realmente exista
             if (!file.exists()) {
                 Log.e("DEBUG_SAVE", "El archivo temporal no existe")
                 return Result.failure()
             }
 
-            // 2. Leemos todo el XML gigante desde el archivo
+            // Pasamos el archivo a un String para poder procesarlo.
             val xml = file.readText()
 
-            // 3. Procesamos y guardamos en Room
+//limpiar datos y permiso para guardar en db
             val repository = SicenetRepository(RetrofitClient.apiService)
             val baseDatos = SicenetDatabase.getDatabase(applicationContext)
-
             val materiasProcesadas = repository.procesarKardex(xml)
 
+            // ACTUALIZAR LA BASE DE DATOS
             if (materiasProcesadas.isNotEmpty()) {
+
                 baseDatos.sicenetDao().limpiarKardex()
+
                 baseDatos.sicenetDao().insertarKardex(materiasProcesadas)
                 Log.d("DEBUG_SAVE", "Kardex guardado en Room exitosamente")
 
-                // Guardar la fecha de actualización
+                //Guardamos fecha actual
                 val sharedPref = applicationContext.getSharedPreferences("sicenet_prefs", Context.MODE_PRIVATE)
                 sharedPref.edit().putString("fecha_kardex", java.util.Date().toString()).apply()
             }
 
-            // 4. Limpieza: Borramos el archivo para no saturar la memoria del teléfono
+            // borramos archivo temporal de fetch
             file.delete()
 
             Result.success()
