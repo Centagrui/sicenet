@@ -34,7 +34,7 @@ fun KardexScreen(vm: SicenetViewModel, onOpenMenu: () -> Unit) {
 
     // se sincroniza con el workrd y busca datos en el servdor
     LaunchedEffect(Unit) {
-        vm.sincronizarDato("KARDEX")
+        vm.sincronizarDato("KARDEX")// justo aqui se actualiza
     }
 
     // Recuperamos la última fecha en que se sincronizo

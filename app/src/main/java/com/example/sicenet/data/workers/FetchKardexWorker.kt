@@ -26,8 +26,7 @@ class FetchKardexWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
             val file = File(applicationContext.cacheDir, "kardex_temp.xml")
             file.writeText(respuestaXml)
 
-            // 5. Pasamos la RUTA al siguiente Worker
-            val outputData = workDataOf("kardex_file_path" to file.absolutePath)
+                val outputData = workDataOf("kardex_file_path" to file.absolutePath)
 
             Log.d("DEBUG_XML", "Kardex XML obtenido exitosamente")
             Result.success(outputData)

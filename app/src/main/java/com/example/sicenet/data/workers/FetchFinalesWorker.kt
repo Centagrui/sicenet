@@ -12,10 +12,9 @@ class FetchFinalesWorker(context: Context, params: WorkerParameters) : Coroutine
         return try {
             val repository = SicenetRepository(RetrofitClient.apiService)
 
-            // Llamamos al método específico para Calificaciones Finales
             val respuestaXml = repository.recuperarCalificacionesFinales()
 
-            // Pasamos el XML al siguiente Worker (SaveFinalesWorker)
+            // Pasamos el XML al siguiente Worker
             val outputData = workDataOf("xml_finales" to respuestaXml)
             Result.success(outputData)
         } catch (e: Exception) {

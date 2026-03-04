@@ -13,30 +13,25 @@ import com.example.sicenet.data.workers.*
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel principal de la aplicación.
- * Gestiona el estado de la UI, la sesión del usuario y la orquestación de Workers.
- */
+// desde aqui manejgamos los workers
 class SicenetViewModel(
     private val repository: ISicenetRepository,
     private val localRepository: SicenetLocalRepository,
     application: Application
 ) : AndroidViewModel(application) {
 
-    // Estado para monitorear si el dispositivo tiene acceso a Internet
+// nos fijamos si tiene intenet
     val estaOnline = mutableStateOf(true)
 
     // Instancia única de WorkManager para gestionar tareas en segundo plano
     private val workManager = WorkManager.getInstance(application)
 
-    // --- ESTADOS DE LOGIN (Reactivos a Compose) ---
+ //esta esperando lo que se le va a llevar
     var matricula by mutableStateOf("")
     var password by mutableStateOf("")
     var estaCargando by mutableStateOf(false)
     var mensajeError by mutableStateOf("")
 
-    // --- FLUJOS DE DATOS DESDE ROOM (Repositorio Local) ---
-    // Estos 'Flows' notifican a la UI automáticamente cuando la base de datos cambia
     val perfilLocal = localRepository.perfil
     val materiasLocal = localRepository.cargaAcademica
     val kardexLocal = localRepository.kardex
@@ -44,7 +39,6 @@ class SicenetViewModel(
     val finalesLocal = localRepository.finales
 
     init {
-        // Observador de depuración para verificar en consola cambios en el Kárdex
         viewModelScope.launch {
             kardexLocal.collect { lista ->
                 Log.d("DEBUG_SICENET", "Kárdex actualizado en DB: ${lista.size} materias")
@@ -52,25 +46,21 @@ class SicenetViewModel(
         }
     }
 
-    // --- FUNCIONES DE SESIÓN ---
 
-    /**
-     * Intenta autenticar al usuario con el servidor SICENET.
-     */
+
     fun iniciarSesion(context: Context, alEntrar: () -> Unit) {
-        if (estaCargando) return // Evita múltiples clicks
+        if (estaCargando) return
         viewModelScope.launch {
             estaCargando = true
             mensajeError = ""
             try {
-                // Llamada suspendida al repositorio (petición de red)
+                // verifica
                 val exito = repository.login(matricula, password)
                 if (exito) {
-                    // Si el login es correcto, disparamos la primera sincronización de perfil
                     sincronizarDato("PERFIL")
                     estaCargando = false
-                    alEntrar() // Navega a la pantalla principal
-                    password = "" // Seguridad: limpia la contraseña de memoria
+                    alEntrar()
+                    password = ""
                 } else {
                     mensajeError = "Matrícula o contraseña incorrecta."
                     estaCargando = false
@@ -82,19 +72,14 @@ class SicenetViewModel(
         }
     }
 
-    // --- MÉTODO DE SINCRONIZACIÓN UNIFICADO ---
-
-    /**
-     * Orquesta el encadenamiento de Workers:
-     * Primero descarga (Fetch) y luego guarda (Save) en la base de datos local.
-     */
+    // primera va por los fetch y luego los guarda en room
     fun sincronizarDato(tipo: String) {
-        // Solo inicia si hay conexión a Internet
+        // solo si hay intenet
         val restricciones = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
 
-        // Seleccionamos dinámicamente el par de Workers y el nombre único de la tarea
+        // para mandar llamar los workers
         val (fetchClass, saveClass, uniqueName) = when(tipo) {
             "PERFIL" -> Triple(FetchProfileWorker::class.java, SaveProfileWorker::class.java, "sync_perfil")
             "CARGA" -> Triple(FetchCargaWorker::class.java, SaveCargaWorker::class.java, "sync_carga")
@@ -104,26 +89,25 @@ class SicenetViewModel(
             else -> return
         }
 
-        // Petición para descargar datos del SICENET
+        //  descargar datos del SICENET
         val requestFetch = OneTimeWorkRequest.Builder(fetchClass)
             .setConstraints(restricciones)
             .build()
 
-        // Petición para procesar y persistir en Room
+        // procesar en Room
         val requestSave = OneTimeWorkRequest.Builder(saveClass)
             .build()
 
-        // ENCADENAMIENTO: Fetch -> Save
-        // ExistingWorkPolicy.REPLACE cancela una descarga anterior si se inicia una nueva del mismo tipo
+
+        // es para que solo se haga una cosa por cosa, y solo hasta que tegna los datos de fetch
+        // va a poder guardar los datos en el save
         workManager.beginUniqueWork(uniqueName, ExistingWorkPolicy.REPLACE, requestFetch)
-            .then(requestSave)
+            .then(requestSave)// es cuando lo guarda en la room despues de haber acabo bien lo del fetch
             .enqueue()
     }
 
-    /**
-     * Verifica si existen datos de perfil en Room.
-     * Útil para el Splash Screen para decidir si mandar al usuario a Login o a Home.
-     */
+
+    // es para ver si hay datos ya en la room
     fun verificarSesion(onResultado: (Boolean) -> Unit) {
         viewModelScope.launch {
             // Tomamos el primer valor que emita el flujo de perfil
@@ -132,9 +116,7 @@ class SicenetViewModel(
         }
     }
 
-    /**
-     * Borra todos los datos de las tablas de Room (Cierra la sesión localmente).
-     */
+   // cerrar sesion
     fun cerrarSesion() {
         viewModelScope.launch {
             localRepository.limpiarTodo()

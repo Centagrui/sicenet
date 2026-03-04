@@ -31,10 +31,7 @@ import com.example.sicenet.ui.screen.*
 import com.example.sicenet.ui.theme.SicenetTheme
 import kotlinx.coroutines.launch
 
-/**
- * Actividad principal: Orquestador de la aplicación.
- * Gestiona el ciclo de vida, la inyección de dependencias manual y el ruteo de navegación.
- */
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,48 +40,39 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val application = context.applicationContext as Application
 
-                // --- 1. CONFIGURACIÓN DE DEPENDENCIAS ---
                 // Inicializamos los componentes base que el ViewModel necesita para funcionar.
                 val apiService = RetrofitClient.apiService
                 val repository = SicenetRepository(apiService)
                 val database = SicenetDatabase.getDatabase(application)
                 val localRepo = SicenetLocalRepository(database.sicenetDao())
 
-                // Inyectamos las dependencias al ViewModel a través de la Factory
                 val sicenetViewModel: SicenetViewModel = viewModel(
                     factory = SicenetViewModelFactory(repository, localRepo, application)
                 )
 
-                // --- 2. ESTADOS DE NAVEGACIÓN Y UI ---
                 val navController = rememberNavController()
                 val drawerState = rememberDrawerState(initialValue = Closed)
-                val scope = rememberCoroutineScope() // Para abrir/cerrar el drawer asíncronamente
+                val scope = rememberCoroutineScope()
 
-                // Estado para decidir qué pantalla mostrar al abrir la app (Login o Perfil)
+                // qué pantalla mostrar  Login o Perfil
                 var destinoInicial by remember { mutableStateOf<String?>(null) }
 
-                // --- 3. LÓGICA DE ARRANQUE (Session Check) ---
-                // Se ejecuta una sola vez al montar la actividad
                 LaunchedEffect(Unit) {
                     sicenetViewModel.verificarSesion { existe: Boolean ->
                         destinoInicial = if (existe) Destinos.Perfil.ruta else "login"
                     }
                 }
 
-                // Mientras verificamos si hay sesión en Room, mostramos un indicador de carga
                 if (destinoInicial == null) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Color(0xFF3E2723))
                     }
                 } else {
-                    // --- 4. ESTRUCTURA VISUAL (Drawer + NavHost) ---
                     ModalNavigationDrawer(
                         drawerState = drawerState,
-                        // El menú lateral se bloquea si el usuario está en la pantalla de login
                         gesturesEnabled = destinoInicial != "login",
                         drawerContent = {
                             ModalDrawerSheet {
-                                // Contenido del menú lateral (Navigation Drawer)
                                 Text(
                                     "Menú SICENET",
                                     modifier = Modifier.padding(16.dp),
@@ -92,7 +80,6 @@ class MainActivity : ComponentActivity() {
                                 )
                                 HorizontalDivider()
 
-                                // Items de navegación manuales
                                 NavigationDrawerItem(
                                     label = { Text(Destinos.Perfil.titulo) },
                                     selected = false,
@@ -153,7 +140,6 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     ) {
-                        // El NavHost es el contenedor que intercambia las pantallas
                         NavHost(
                             navController = navController,
                             startDestination = destinoInicial!!
@@ -166,7 +152,6 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            // Definición de rutas y sus respectivas pantallas
                             composable(Destinos.Perfil.ruta) {
                                 ProfileScreen(vm = sicenetViewModel, onOpenMenu = { scope.launch { drawerState.open() } })
                             }
@@ -190,9 +175,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Factory necesaria para proveer el repositorio y el contexto al ViewModel.
- */
+
 class SicenetViewModelFactory(
     private val repository: SicenetRepository,
     private val localRepository: SicenetLocalRepository,
