@@ -59,4 +59,12 @@ interface SicenetDao {
 
     @Query("SELECT * FROM calificaciones_finales")
     fun obtenerFinales(): Flow<List<CalificacionFinal>>
+
+    /////////////////////////////////////////////////////////////////////7777
+    // Agrega esto a tu SicenetDao.kt
+    @Query("SELECT * FROM carga_academica")
+    fun obtenerCargaCursor(): android.database.Cursor
+
+    @Query("SELECT * FROM kardex")
+    fun obtenerKardexCursor(): android.database.Cursor
 }
